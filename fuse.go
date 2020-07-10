@@ -1,7 +1,5 @@
-package main
+package fuse
 
-import "fmt"
-
-func main() {
-	fmt.Println("Fuse")
+func Method1() string {
+	return "From Method1"
 }
