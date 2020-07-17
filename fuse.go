@@ -1,26 +1,14 @@
 package fuse
 
-func Method1() string {
-	return "From Method1"
-}
-/*
-package fuse
-
 import (
 	"fmt"
 	"reflect"
 	"strings"
 )
 
-package fuse
-
-import (
-"fmt"
-"reflect"
-"reftest/sub1"
-"reftest/sub1/sub2"
-"strings"
-)
+func Method1() string {
+	return "From Method1"
+}
 
 var registry map[string]component = make(map[string]component)
 
@@ -92,6 +80,7 @@ func wire(c *component, sf reflect.StructField) {
 	}
 }
 
+
 func tagInfo(sf reflect.StructField) (name string, stateless bool, typ reflect.Type) {
 	lookup, ok := sf.Tag.Lookup("fuse")
 	fmt.Println("Tag = ", lookup, " ", ok)
@@ -113,6 +102,7 @@ func Register(c Entry) {
 	registry[c.Name] = c2
 }
 
+/*
 func maina() {
 	fmt.Println("Refl")
 	str1 := sub1.Struct1{"STr1 ", 100}
@@ -151,7 +141,9 @@ func maina() {
 		}
 	}
 }
-*/
+
+ */
+
 // Requirements
 // Non-intrusive, minimal imports, small API
 // Minimal footprint, small overhead
