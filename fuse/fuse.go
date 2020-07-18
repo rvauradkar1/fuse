@@ -14,6 +14,10 @@ func Method2() string {
 	return "From Method1"
 }
 
+func Method3() string {
+	return "From Method1"
+}
+
 var registry map[string]component = make(map[string]component)
 
 type component struct {
