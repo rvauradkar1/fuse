@@ -6,27 +6,15 @@ import (
 	"strings"
 )
 
-func Method1() string {
-	return "From Method1"
-}
-
-func Method2() string {
-	return "From Method1"
-}
-
-func Method3() string {
-	return "From Method1"
-}
-
-var registry map[string]component = make(map[string]component)
+var registry = make(map[string]component)
 
 type component struct {
 	Name      string
-	stateless bool
-	T         reflect.Type
+	Stateless bool
+	Typ       reflect.Type
 	RefValue  reflect.Value
-	PtrRef    interface{}
-	ValRef    interface{}
+	PtrOfComp interface{}
+	ValOfComp interface{}
 }
 
 type Entry struct {
@@ -37,7 +25,6 @@ type Entry struct {
 }
 
 func Fuse(entries []Entry) {
-
 	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
 		entries[i].Typ = reflect.TypeOf(entries[i].Instance)
@@ -51,8 +38,8 @@ func Fuse(entries []Entry) {
 }
 
 func fuse(c *component) {
-	for i := 0; i < c.T.NumField(); i++ {
-		sf := c.T.Field(i)
+	for i := 0; i < c.Typ.NumField(); i++ {
+		sf := c.Typ.Field(i)
 		switch sf.Type.Kind() {
 		case reflect.Interface, reflect.Struct:
 			fmt.Println("Interface")
@@ -78,8 +65,8 @@ func wire(c *component, sf reflect.StructField) {
 		switch parts[1] {
 		case "ptr":
 			fmt.Println("ptr................")
-			//f := c.RefValue.Field(sf.Index[0])
-			//fmt.Println(f)
+			f := c.RefValue.Field(sf.Index[0])
+			fmt.Println(f)
 			//fmt.Println("")
 		case "value":
 			fmt.Println("value.............")
@@ -87,7 +74,6 @@ func wire(c *component, sf reflect.StructField) {
 		}
 	}
 }
-
 
 func tagInfo(sf reflect.StructField) (name string, stateless bool, typ reflect.Type) {
 	lookup, ok := sf.Tag.Lookup("fuse")
@@ -106,7 +92,7 @@ func Register(c Entry) {
 	ptr := addr.Interface()
 	val := elem.Interface()
 
-	c2 := component{Name: c.Name, stateless: c.Stateless, T: c.Typ, RefValue: refValue, PtrRef: ptr, ValRef: val}
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, RefValue: refValue, PtrOfComp: ptr, ValOfComp: val}
 	registry[c.Name] = c2
 }
 
@@ -150,10 +136,13 @@ func maina() {
 	}
 }
 
- */
+*/
 
 // Requirements
 // Non-intrusive, minimal imports, small API
 // Minimal footprint, small overhead
-// Supports stateless as well as stateful components
+// Supports Stateless as well as stateful components
+// Implements ResourceLocator and Dependency Injection
+// Support struct and interface type
+// Support pointer as well as value receivers
 // Generates mocks for unit-testing
