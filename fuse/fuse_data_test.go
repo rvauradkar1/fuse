@@ -4,14 +4,12 @@ func M1() string {
 	return "testing"
 }
 
-
-
-
 type OrderController struct {
-	OrdSvc  IOrderService   `_fuse:"OrdSvc,value"`
+	s      string
+	OrdSvc IOrderService `_fuse:"OrdSvc,value"`
 }
 
-func (ordCtrl *OrderController) Order(id string)  error {
+func (ordCtrl *OrderController) Order(id string) error {
 	return nil
 }
 
@@ -20,17 +18,18 @@ type IOrderService interface {
 }
 
 type OrderService struct {
+	t string
+}
 
+func (o *OrderService) findOrder() string {
+	return "order"
 }
 
 type AuthService struct {
-
 }
 
 type OrderDB struct {
-
 }
 
 type CartService struct {
-
 }

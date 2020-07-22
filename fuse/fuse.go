@@ -12,7 +12,7 @@ type component struct {
 	Name      string
 	Stateless bool
 	Typ       reflect.Type
-	RefValue  reflect.Value
+	PtrValue  reflect.Value
 	PtrOfComp interface{}
 	ValOfComp interface{}
 }
@@ -33,7 +33,7 @@ func Fuse(entries []Entry) {
 		entries[i].Typ = reflect.TypeOf(entries[i].Instance)
 		fmt.Printf("iiii = %#v\n", entries[i].Instance)
 		fmt.Printf("Entry = %v", entries[i])
-		Register(entries[i])
+		Register2(entries[i])
 	}
 	for _, c := range registry {
 		fuse(&c)
@@ -67,10 +67,11 @@ func wire(c *component, sf reflect.StructField) {
 		if len(parts) != 2 {
 			panic(fmt.Sprintf("fuse tag should contain 2 pieces of info (name and typ), contains %d", len(parts)))
 		}
-		switch parts[1] {
+		name := parts[0]
+		switch parts[1]{
 		case "ptr":
 			fmt.Println("ptr................")
-			f := c.RefValue.Field(sf.Index[0])
+			f := c.PtrValue.Field(sf.Index[0])
 			fmt.Println(f)
 			fmt.Println(f.CanAddr())
 			fmt.Println(f.CanSet())
@@ -78,12 +79,23 @@ func wire(c *component, sf reflect.StructField) {
 		case "value":
 			fmt.Println("value.............")
 
-			fmt.Println(c.RefValue.Elem().CanAddr())
-			fmt.Println(c.RefValue.Elem().CanSet())
+			fmt.Println(c.PtrValue.Elem().CanAddr())
+			fmt.Println(c.PtrValue.Elem().CanSet())
 			fmt.Println()
-			elem := c.RefValue.Elem()
-			f := elem.Field(0)
-			fmt.Printf("%#v\n", f)
+			elem := c.PtrValue.Elem()
+			f := elem.FieldByIndex(sf.Index)
+			fmt.Printf("field = %#v\n", f)
+			comp := registry[name]
+			if(comp.Typ.AssignableTo(f.Type())) {
+				fmt.Println("Assignable")
+				of := reflect.ValueOf(comp.ValOfComp)
+				fmt.Println(of)
+				fmt.Println(of.Type())
+				fmt.Println(of.Kind())
+				fmt.Println(f.CanAddr())
+				fmt.Println(f.CanSet())
+				f.Set(of)
+			}
 			fmt.Println()
 		default:
 		}
@@ -111,7 +123,32 @@ func Register(c Entry) {
 	val := elem.Interface()
 	fmt.Printf("val = %#v\n", val)
 
-	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, RefValue: refValue, PtrOfComp: &val, ValOfComp: val}
+	//c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrOfComp: &val, ValOfComp: val}
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrOfComp: &val, ValOfComp: val}
+	registry[c.Name] = c2
+}
+
+func Register2(c Entry) {
+	var o interface{} = c.Instance
+	v := reflect.ValueOf(o)
+	elem := v.Elem()
+	f := elem.Field(0)
+
+	fmt.Printf("Field = %#v\n", f)
+
+	fmt.Printf("o2 = %#v\n", v)
+	o2 := reflect.Indirect(v)
+	fmt.Printf("o2 = %#v\n", o2)
+	fmt.Println()
+
+	t := reflect.TypeOf(o)
+	fmt.Println(t)
+	//t = reflect.TypeOf(o2.Elem().Interface())
+	fmt.Println(o2.Type())
+	val := o2.Interface()
+	fmt.Println(val)
+
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrOfComp: o, ValOfComp: val}
 	registry[c.Name] = c2
 }
 
