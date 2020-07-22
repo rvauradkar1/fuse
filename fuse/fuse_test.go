@@ -2,8 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"reftest/sub1"
-	"reftest/sub1/sub2"
 	"testing"
 )
 
@@ -12,9 +10,8 @@ func Test_is_ok(t *testing.T) {
 
 
 	cs := make([]Entry, 0)
-	elems := Entry{Name: "str1", Stateless: true, Instance: sub1.Struct1{}}
-	cs = append(cs, elems)
-	cs = append(cs, Entry{Name: "str2", Stateless: true, Instance: sub2.Struct2{}})
+	cs = append(cs, Entry{Name: "OrdCtrl", Stateless: true, Instance: OrderController{}})
+	cs = append(cs, Entry{Name: "OrdSvc", Stateless: true, Instance: OrderService{}})
 
 	Fuse(cs)
 }

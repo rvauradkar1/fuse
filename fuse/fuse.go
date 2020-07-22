@@ -27,6 +27,8 @@ type Entry struct {
 func Fuse(entries []Entry) {
 	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
+		//ptr := entries[i].Instance
+		//val := *ptr;
 		entries[i].Typ = reflect.TypeOf(entries[i].Instance)
 		Register(entries[i])
 	}
@@ -88,11 +90,9 @@ func Register(c Entry) {
 	fmt.Println(c)
 	refValue := reflect.New(c.Typ)
 	elem := refValue.Elem()
-	addr := elem.Addr()
-	ptr := addr.Interface()
 	val := elem.Interface()
 
-	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, RefValue: refValue, PtrOfComp: ptr, ValOfComp: val}
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, RefValue: refValue, PtrOfComp: &val, ValOfComp: val}
 	registry[c.Name] = c2
 }
 

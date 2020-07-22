@@ -6,8 +6,13 @@ func M1() string {
 
 
 
-type OrderController struct {
 
+type OrderController struct {
+	ordSvc  IOrderService   `_fuse:"OrdSvc,value"`
+}
+
+func (ordCtrl *OrderController) Order(id string)  error {
+	return nil
 }
 
 type IOrderService interface {
