@@ -27,9 +27,12 @@ type Entry struct {
 func Fuse(entries []Entry) {
 	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
+		fmt.Printf("Entry = %#v\n", entries[i])
 		//ptr := entries[i].Instance
 		//val := *ptr;
 		entries[i].Typ = reflect.TypeOf(entries[i].Instance)
+		fmt.Printf("iiii = %#v\n", entries[i].Instance)
+		fmt.Printf("Entry = %v", entries[i])
 		Register(entries[i])
 	}
 	for _, c := range registry {
@@ -53,11 +56,11 @@ func fuse(c *component) {
 }
 
 func wire(c *component, sf reflect.StructField) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
 		}
-	}()
+	}()*/
 	if tag, ok := sf.Tag.Lookup("_fuse"); ok {
 		fmt.Println("fusing.... ", tag)
 		parts := strings.Split(tag, ",")
@@ -69,9 +72,19 @@ func wire(c *component, sf reflect.StructField) {
 			fmt.Println("ptr................")
 			f := c.RefValue.Field(sf.Index[0])
 			fmt.Println(f)
-			//fmt.Println("")
+			fmt.Println(f.CanAddr())
+			fmt.Println(f.CanSet())
+			fmt.Println()
 		case "value":
 			fmt.Println("value.............")
+
+			fmt.Println(c.RefValue.Elem().CanAddr())
+			fmt.Println(c.RefValue.Elem().CanSet())
+			fmt.Println()
+			elem := c.RefValue.Elem()
+			f := elem.Field(0)
+			fmt.Printf("%#v\n", f)
+			fmt.Println()
 		default:
 		}
 	}
@@ -87,10 +100,16 @@ func tagInfo(sf reflect.StructField) (name string, stateless bool, typ reflect.T
 }
 
 func Register(c Entry) {
-	fmt.Println(c)
+	fmt.Printf("cccc = \n%#v\n", c)
 	refValue := reflect.New(c.Typ)
+	fmt.Println(refValue.Elem().CanAddr())
+	fmt.Println(refValue.Elem().CanSet())
+	//fmt.Printf("ffff = %#v\n", refValue.Elem().Field(0))
+	fmt.Printf("fff = %#v\n", refValue)
 	elem := refValue.Elem()
+	fmt.Println(elem)
 	val := elem.Interface()
+	fmt.Printf("val = %#v\n", val)
 
 	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, RefValue: refValue, PtrOfComp: &val, ValOfComp: val}
 	registry[c.Name] = c2
