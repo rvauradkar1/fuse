@@ -41,7 +41,15 @@ func (b builder) Register(entries []Entry) []error {
 		Register2(entries[i])
 	}
 	for _, c := range registry {
-		fuse(&c)
+		for i := 0; i < c.Typ.NumField(); i++ {
+			sf := c.Typ.Field(i)
+			switch sf.Type.Kind() {
+			case reflect.Interface, reflect.Struct:
+				fmt.Println("Interface")
+				wire(&c, sf)
+			default:
+			}
+		}
 	}
 	fmt.Println(registry)
 	fmt.Println("")
@@ -51,19 +59,6 @@ func (b builder) Register(entries []Entry) []error {
 
 func (b builder) Find(name string) interface{} {
 	return registry[name].PtrToComp
-}
-
-func fuse(c *component) {
-	for i := 0; i < c.Typ.NumField(); i++ {
-		sf := c.Typ.Field(i)
-		switch sf.Type.Kind() {
-		case reflect.Interface, reflect.Struct:
-			fmt.Println("Interface")
-			wire(c, sf)
-		default:
-		}
-
-	}
 }
 
 func wire(c *component, sf reflect.StructField) {
@@ -114,15 +109,6 @@ func wire(c *component, sf reflect.StructField) {
 		default:
 		}
 	}
-}
-
-func tagInfo(sf reflect.StructField) (name string, stateless bool, typ reflect.Type) {
-	lookup, ok := sf.Tag.Lookup("fuse")
-	fmt.Println("Tag = ", lookup, " ", ok)
-	lookup, ok = sf.Tag.Lookup("id")
-	fmt.Println("Tag = ", lookup, " ", ok)
-
-	return "", true, nil
 }
 
 func Register11(c Entry) {
