@@ -6,8 +6,8 @@ func M1() string {
 
 type OrderController struct {
 	s       string
-	OrdSvc  IOrderService `_fuse:"OrdSvc,value"`
-	OrdSvc2 OrderService  `_fuse:"OrdSvc,value"`
+	OrdSvc  IOrderService `_fuse:"OrdSvc"`
+	OrdSvc2 OrderService  `_fuse:"OrdSvc"`
 }
 
 func (ordCtrl *OrderController) Order(id string) error {

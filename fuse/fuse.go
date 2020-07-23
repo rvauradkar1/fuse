@@ -33,12 +33,13 @@ type Entry struct {
 }
 
 type builder struct {
+	Registry map[string]component
+	Errors   []error
 }
 
 func (b builder) Register(entries []Entry) []error {
-	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
-		Register2(entries[i])
+		Register4(entries[i])
 	}
 	for _, c := range registry {
 		for i := 0; i < c.Typ.NumField(); i++ {
@@ -46,7 +47,7 @@ func (b builder) Register(entries []Entry) []error {
 			switch sf.Type.Kind() {
 			case reflect.Interface, reflect.Struct:
 				fmt.Println("Interface")
-				wire(&c, sf)
+				wire2(&c, sf)
 			default:
 			}
 		}
@@ -109,6 +110,35 @@ func wire(c *component, sf reflect.StructField) {
 		default:
 		}
 	}
+
+}
+
+func wire2(c *component, sf reflect.StructField) {
+	if name, ok := sf.Tag.Lookup("_fuse"); ok {
+		fmt.Println("fusing.... ", name)
+		fmt.Println("value.............")
+		fmt.Println(c.PtrValue.Elem().CanAddr())
+		fmt.Println(c.PtrValue.Elem().CanSet())
+		fmt.Println()
+		elem := c.PtrValue.Elem()
+		f := elem.FieldByIndex(sf.Index)
+		fmt.Printf("field = %#v\n", f)
+		comp := registry[name]
+		if comp.Typ.AssignableTo(f.Type()) {
+			if f.Kind() == reflect.Interface || f.Kind() == reflect.Struct {
+				fmt.Println("Assignable")
+				of := reflect.ValueOf(comp.ValOfComp)
+				fmt.Println(of)
+				fmt.Println(of.Type())
+				fmt.Println(of.Kind())
+				fmt.Println(f.CanAddr())
+				fmt.Println(f.CanSet())
+				f.Set(of)
+			}
+
+		}
+		fmt.Println()
+	}
 }
 
 func Register11(c Entry) {
@@ -131,6 +161,8 @@ func Register11(c Entry) {
 func Register2(c Entry) {
 	var o interface{} = c.Instance
 	v := reflect.ValueOf(o)
+	t := reflect.TypeOf(o)
+	fmt.Println(t)
 	elem := v.Elem()
 	f := elem.Field(0)
 
@@ -141,14 +173,31 @@ func Register2(c Entry) {
 	fmt.Printf("o2 = %#v\n", o2)
 	fmt.Println()
 
-	t := reflect.TypeOf(o)
-	fmt.Println(t)
 	//t = reflect.TypeOf(o2.Elem().Interface())
 	fmt.Println(o2.Type())
 	val := o2.Interface()
 	fmt.Println(val)
 
 	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
+	registry[c.Name] = c2
+}
+
+func Register3(c Entry) {
+	var o interface{} = c.Instance
+	v := reflect.ValueOf(o)
+	o2 := reflect.Indirect(v)
+	val := o2.Interface()
+
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
+	registry[c.Name] = c2
+}
+
+func Register4(c Entry) {
+	refValue := reflect.ValueOf(c.Instance)
+	elem := refValue.Elem()
+	val := elem.Interface()
+	//
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: reflect.TypeOf(val), PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
 	registry[c.Name] = c2
 }
 
