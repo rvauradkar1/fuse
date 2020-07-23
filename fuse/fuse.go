@@ -24,15 +24,9 @@ type Entry struct {
 	Instance  interface{}
 }
 
-func Fuse(entries []Entry) {
+func Fuse(entries []Entry) []error {
 	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
-		fmt.Printf("Entry = %#v\n", entries[i])
-		//ptr := entries[i].Instance
-		//val := *ptr;
-		entries[i].Typ = reflect.TypeOf(entries[i].Instance)
-		fmt.Printf("iiii = %#v\n", entries[i].Instance)
-		fmt.Printf("Entry = %v", entries[i])
 		Register2(entries[i])
 	}
 	for _, c := range registry {
@@ -40,6 +34,8 @@ func Fuse(entries []Entry) {
 	}
 	fmt.Println(registry)
 	fmt.Println("")
+
+	return nil
 }
 
 func fuse(c *component) {
@@ -68,7 +64,7 @@ func wire(c *component, sf reflect.StructField) {
 			panic(fmt.Sprintf("fuse tag should contain 2 pieces of info (name and typ), contains %d", len(parts)))
 		}
 		name := parts[0]
-		switch parts[1]{
+		switch parts[1] {
 		case "ptr":
 			fmt.Println("ptr................")
 			f := c.PtrValue.Field(sf.Index[0])
@@ -86,15 +82,18 @@ func wire(c *component, sf reflect.StructField) {
 			f := elem.FieldByIndex(sf.Index)
 			fmt.Printf("field = %#v\n", f)
 			comp := registry[name]
-			if(comp.Typ.AssignableTo(f.Type())) {
-				fmt.Println("Assignable")
-				of := reflect.ValueOf(comp.ValOfComp)
-				fmt.Println(of)
-				fmt.Println(of.Type())
-				fmt.Println(of.Kind())
-				fmt.Println(f.CanAddr())
-				fmt.Println(f.CanSet())
-				f.Set(of)
+			if comp.Typ.AssignableTo(f.Type()) {
+				if f.Kind() == reflect.Interface || f.Kind() == reflect.Struct {
+					fmt.Println("Assignable")
+					of := reflect.ValueOf(comp.ValOfComp)
+					fmt.Println(of)
+					fmt.Println(of.Type())
+					fmt.Println(of.Kind())
+					fmt.Println(f.CanAddr())
+					fmt.Println(f.CanSet())
+					f.Set(of)
+				}
+
 			}
 			fmt.Println()
 		default:
