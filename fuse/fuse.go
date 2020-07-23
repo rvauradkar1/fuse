@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+type Fuse interface {
+	Register(entries []Entry) []error
+	Find(name string) interface{}
+}
+
+func New() Fuse {
+	return builder{}
+}
+
 var registry = make(map[string]component)
 
 type component struct {
@@ -13,18 +22,20 @@ type component struct {
 	Stateless bool
 	Typ       reflect.Type
 	PtrValue  reflect.Value
-	PtrOfComp interface{}
+	PtrToComp interface{}
 	ValOfComp interface{}
 }
 
 type Entry struct {
 	Name      string
 	Stateless bool
-	Typ       reflect.Type
 	Instance  interface{}
 }
 
-func Fuse(entries []Entry) []error {
+type builder struct {
+}
+
+func (b builder) Register(entries []Entry) []error {
 	fmt.Println(len(entries))
 	for i := 0; i < len(entries); i++ {
 		Register2(entries[i])
@@ -36,6 +47,10 @@ func Fuse(entries []Entry) []error {
 	fmt.Println("")
 
 	return nil
+}
+
+func (b builder) Find(name string) interface{} {
+	return registry[name].PtrToComp
 }
 
 func fuse(c *component) {
@@ -110,9 +125,9 @@ func tagInfo(sf reflect.StructField) (name string, stateless bool, typ reflect.T
 	return "", true, nil
 }
 
-func Register(c Entry) {
+func Register11(c Entry) {
 	fmt.Printf("cccc = \n%#v\n", c)
-	refValue := reflect.New(c.Typ)
+	refValue := reflect.New(nil)
 	fmt.Println(refValue.Elem().CanAddr())
 	fmt.Println(refValue.Elem().CanSet())
 	//fmt.Printf("ffff = %#v\n", refValue.Elem().Field(0))
@@ -122,8 +137,8 @@ func Register(c Entry) {
 	val := elem.Interface()
 	fmt.Printf("val = %#v\n", val)
 
-	//c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrOfComp: &val, ValOfComp: val}
-	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrOfComp: &val, ValOfComp: val}
+	//c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrToComp: &val, ValOfComp: val}
+	c2 := component{Name: c.Name, Stateless: c.Stateless, PtrValue: refValue, PtrToComp: &val, ValOfComp: val}
 	registry[c.Name] = c2
 }
 
@@ -147,51 +162,9 @@ func Register2(c Entry) {
 	val := o2.Interface()
 	fmt.Println(val)
 
-	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrOfComp: o, ValOfComp: val}
+	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
 	registry[c.Name] = c2
 }
-
-/*
-func maina() {
-	fmt.Println("Refl")
-	str1 := sub1.Struct1{"STr1 ", 100}
-	str2 := sub2.Struct2{}
-	t2 := reflect.TypeOf(str2)
-	m := t2.Method(0)
-	fmt.Println(m)
-	t3 := reflect.TypeOf(str2)
-	fmt.Println("equls = ", t2 == t3)
-	fmt.Println(t2)
-	for i := 0; i < t2.NumField(); i++ {
-		var field reflect.StructField = t2.Field(i)
-		t21 := field.Type
-		fmt.Println(t21)
-		b := t21.AssignableTo(reflect.TypeOf(str1))
-		b1 := reflect.TypeOf(str1).AssignableTo(t21)
-		fmt.Println("Can be assigned = ", b1)
-		if b1 {
-			fmt.Println(b)
-			fmt.Println("is assignable = "+t2.PkgPath(), " "+t2.Name())
-			ptr := reflect.ValueOf(&str2)
-			fmt.Println(ptr.Kind())
-			elem := ptr.Elem()
-			fmt.Println(elem.Kind())
-			f1 := elem.Field(i)
-			fmt.Println(f1.Kind())
-			tf1 := t2.Field(i)
-			lookup, ok := tf1.Tag.Lookup("fuse")
-			fmt.Println("Tag = ", lookup, " ", ok)
-			lookup, ok = tf1.Tag.Lookup("id")
-			fmt.Println("Tag = ", lookup, " ", ok)
-			fmt.Println("Can set = ", f1.CanSet())
-			fmt.Println(" value = ", f1)
-			f1.Set(reflect.ValueOf(str1))
-			fmt.Println(" value =  ", f1)
-		}
-	}
-}
-
-*/
 
 // Requirements
 // Non-intrusive, minimal imports, small API
