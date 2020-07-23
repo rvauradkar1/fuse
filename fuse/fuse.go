@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -12,10 +13,12 @@ type Fuse interface {
 }
 
 func New() Fuse {
-	return builder{}
+	b := builder{}
+	b.init()
+	return &b
 }
 
-var registry = make(map[string]component)
+//var registry = make(map[string]component)
 
 type component struct {
 	Name      string
@@ -37,32 +40,36 @@ type builder struct {
 	Errors   []error
 }
 
-func (b builder) Register(entries []Entry) []error {
+func (b *builder) init() {
+	b.Registry = make(map[string]component)
+}
+
+func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
-		Register4(entries[i])
+		b.Register4(entries[i])
 	}
-	for _, c := range registry {
+	for _, c := range b.Registry {
 		for i := 0; i < c.Typ.NumField(); i++ {
 			sf := c.Typ.Field(i)
 			switch sf.Type.Kind() {
 			case reflect.Interface, reflect.Struct:
 				fmt.Println("Interface")
-				wire2(&c, sf)
+				b.wire2(&c, sf)
 			default:
 			}
 		}
 	}
-	fmt.Println(registry)
+	fmt.Println(b.Registry)
 	fmt.Println("")
 
 	return nil
 }
 
-func (b builder) Find(name string) interface{} {
-	return registry[name].PtrToComp
+func (b *builder) Find(name string) interface{} {
+	return b.Registry[name].PtrToComp
 }
 
-func wire(c *component, sf reflect.StructField) {
+func (b *builder) wire(c *component, sf reflect.StructField) {
 	/*defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -92,7 +99,7 @@ func wire(c *component, sf reflect.StructField) {
 			elem := c.PtrValue.Elem()
 			f := elem.FieldByIndex(sf.Index)
 			fmt.Printf("field = %#v\n", f)
-			comp := registry[name]
+			comp := b.Registry[name]
 			if comp.Typ.AssignableTo(f.Type()) {
 				if f.Kind() == reflect.Interface || f.Kind() == reflect.Struct {
 					fmt.Println("Assignable")
@@ -104,16 +111,14 @@ func wire(c *component, sf reflect.StructField) {
 					fmt.Println(f.CanSet())
 					f.Set(of)
 				}
-
 			}
 			fmt.Println()
 		default:
 		}
 	}
-
 }
 
-func wire2(c *component, sf reflect.StructField) {
+func (b *builder) wire2(c *component, sf reflect.StructField) {
 	if name, ok := sf.Tag.Lookup("_fuse"); ok {
 		fmt.Println("fusing.... ", name)
 		fmt.Println("value.............")
@@ -123,7 +128,11 @@ func wire2(c *component, sf reflect.StructField) {
 		elem := c.PtrValue.Elem()
 		f := elem.FieldByIndex(sf.Index)
 		fmt.Printf("field = %#v\n", f)
-		comp := registry[name]
+		comp := b.Registry[name]
+		if !comp.Typ.AssignableTo(f.Type()) {
+			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
+			return
+		}
 		if comp.Typ.AssignableTo(f.Type()) {
 			if f.Kind() == reflect.Interface || f.Kind() == reflect.Struct {
 				fmt.Println("Assignable")
@@ -141,64 +150,24 @@ func wire2(c *component, sf reflect.StructField) {
 	}
 }
 
-func Register11(c Entry) {
-	fmt.Printf("cccc = \n%#v\n", c)
-	refValue := reflect.New(nil)
-	fmt.Println(refValue.Elem().CanAddr())
-	fmt.Println(refValue.Elem().CanSet())
-	//fmt.Printf("ffff = %#v\n", refValue.Elem().Field(0))
-	fmt.Printf("fff = %#v\n", refValue)
-	elem := refValue.Elem()
-	fmt.Println(elem)
-	val := elem.Interface()
-	fmt.Printf("val = %#v\n", val)
-
-	//c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: c.Typ, PtrValue: refValue, PtrToComp: &val, ValOfComp: val}
-	c2 := component{Name: c.Name, Stateless: c.Stateless, PtrValue: refValue, PtrToComp: &val, ValOfComp: val}
-	registry[c.Name] = c2
-}
-
-func Register2(c Entry) {
-	var o interface{} = c.Instance
-	v := reflect.ValueOf(o)
-	t := reflect.TypeOf(o)
-	fmt.Println(t)
-	elem := v.Elem()
-	f := elem.Field(0)
-
-	fmt.Printf("Field = %#v\n", f)
-
-	fmt.Printf("o2 = %#v\n", v)
-	o2 := reflect.Indirect(v)
-	fmt.Printf("o2 = %#v\n", o2)
-	fmt.Println()
-
-	//t = reflect.TypeOf(o2.Elem().Interface())
-	fmt.Println(o2.Type())
-	val := o2.Interface()
-	fmt.Println(val)
-
-	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
-	registry[c.Name] = c2
-}
-
-func Register3(c Entry) {
+func (b *builder) Register3(c Entry) {
 	var o interface{} = c.Instance
 	v := reflect.ValueOf(o)
 	o2 := reflect.Indirect(v)
 	val := o2.Interface()
 
 	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
-	registry[c.Name] = c2
+	b.Registry[c.Name] = c2
 }
 
-func Register4(c Entry) {
-	refValue := reflect.ValueOf(c.Instance)
+func (b *builder) Register4(c Entry) {
+	var o interface{} = c.Instance
+	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
 	val := elem.Interface()
-	//
+
 	c2 := component{Name: c.Name, Stateless: c.Stateless, Typ: reflect.TypeOf(val), PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
-	registry[c.Name] = c2
+	b.Registry[c.Name] = c2
 }
 
 // Requirements
