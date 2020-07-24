@@ -67,23 +67,28 @@ func (b *builder) Register(entries []Entry) []error {
 
 func eigible(sf reflect.StructField) (err []error) {
 	err = make([]error, 0)
-	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
-		err = tagcheck(sf)
+	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct || ptrToStruct(sf) {
+		err = checktag(sf)
 		if len(err) > 0 {
 			return
 		}
 	}
+	return
+}
+
+func ptrToStruct(sf reflect.StructField) bool {
 	if sf.Type.Kind() == reflect.Ptr {
 		fmt.Println(sf.Type.Elem())
 		fmt.Println(sf.Type.Elem().Kind())
 		fmt.Println()
+		if sf.Type.Elem().Kind() == reflect.Struct {
+			return true
+		}
 	}
-
-	return
-
+	return false
 }
 
-func tagcheck(sf reflect.StructField) (err []error) {
+func checktag(sf reflect.StructField) (err []error) {
 	err = make([]error, 0)
 	tag, ok := sf.Tag.Lookup("_fuse")
 	if !ok {

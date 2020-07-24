@@ -30,11 +30,14 @@ func Test_is_ok(t *testing.T) {
 }
 
 type emp struct {
+	s   string
 	dv  dep
 	dv1 dep `_fuse`
 	dv2 dep `_fuse:"OrdSvc"`
 	dv3 dep `_fuse:"name,OrdSvc"`
 	dp  *dep
+	dp2 *dep `_fuse:"OrdSvc"`
+	dp3 *dep `_fuse:"name,OrdSvc"`
 	it  itest
 }
 
@@ -63,7 +66,7 @@ func Test_eligible(t *testing.T) {
 
 	sf, _ = ty.FieldByName("dv2")
 	err = eigible(sf)
-	if len(err) == 0 {
+	if len(err) != 1 {
 		t.Errorf(err[0].Error())
 	}
 
@@ -72,6 +75,25 @@ func Test_eligible(t *testing.T) {
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}
+
+	sf, _ = ty.FieldByName("dp")
+	err = eigible(sf)
+	if len(err) != 0 {
+		t.Errorf(err[0].Error())
+	}
+
+	sf, _ = ty.FieldByName("dp2")
+	err = eigible(sf)
+	if len(err) != 1 {
+		t.Errorf("_fuse tag for field dp2 should contain 2 pieces of info (<name>,'val or ptr')")
+	}
+
+	sf, _ = ty.FieldByName("dp3")
+	err = eigible(sf)
+	if len(err) != 0 {
+		t.Errorf(err[0].Error())
+	}
+
 }
 
 func Test_ptr(t *testing.T) {
