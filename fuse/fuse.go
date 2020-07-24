@@ -51,10 +51,6 @@ func (b *builder) Register(entries []Entry) []error {
 	for _, c := range b.Registry {
 		for i := 0; i < c.Typ.NumField(); i++ {
 			sf := c.Typ.Field(i)
-			fmt.Println(sf.Type.Kind())
-			fmt.Println(sf.Type.Elem())
-			fmt.Println(sf.Type.Elem().Kind())
-			fmt.Println(sf.Type)
 			switch sf.Type.Kind() {
 			case reflect.Interface, reflect.Struct:
 				fmt.Println("Interface")
@@ -71,28 +67,12 @@ func (b *builder) Register(entries []Entry) []error {
 
 func eigible(sf reflect.StructField) (err []error) {
 	err = make([]error, 0)
-	err = tagcheck(sf)
-	if len(err) > 0 {
-		return
-	}
-	/*
-		if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
-			tag, ok := sf.Tag.Lookup("_fuse")
-			if !ok {
-				return
-			}
-			if ok {
-				fmt.Println("fusing.... ", tag)
-				parts := strings.Split(tag, ",")
-				if len(parts) != 2 {
-					e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
-					err = append(err, errors.New(e))
-					return
-				}
-			}
+	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
+		err = tagcheck(sf)
+		if len(err) > 0 {
+			return
 		}
-	*/
-
+	}
 	if sf.Type.Kind() == reflect.Ptr {
 		fmt.Println(sf.Type.Elem())
 		fmt.Println(sf.Type.Elem().Kind())
@@ -105,19 +85,17 @@ func eigible(sf reflect.StructField) (err []error) {
 
 func tagcheck(sf reflect.StructField) (err []error) {
 	err = make([]error, 0)
-	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
-		tag, ok := sf.Tag.Lookup("_fuse")
-		if !ok {
+	tag, ok := sf.Tag.Lookup("_fuse")
+	if !ok {
+		return
+	}
+	if ok {
+		fmt.Println("fusing.... ", tag)
+		parts := strings.Split(tag, ",")
+		if len(parts) != 2 {
+			e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
+			err = append(err, errors.New(e))
 			return
-		}
-		if ok {
-			fmt.Println("fusing.... ", tag)
-			parts := strings.Split(tag, ",")
-			if len(parts) != 2 {
-				e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
-				err = append(err, errors.New(e))
-				return
-			}
 		}
 	}
 	return
@@ -208,6 +186,12 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 		f.Set(of)
 		fmt.Println()
 	}
+}
+
+func (b *builder) wire3(c *component, sf reflect.StructField) {
+	fmt.Println(sf)
+	fmt.Println(sf.Type.Kind())
+	fmt.Println(sf.Type.Elem().Kind())
 }
 
 func (b *builder) Register3(c Entry) {

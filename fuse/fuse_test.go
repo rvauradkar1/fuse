@@ -73,3 +73,25 @@ func Test_eligible(t *testing.T) {
 		t.Errorf(err[0].Error())
 	}
 }
+
+func Test_ptr(t *testing.T) {
+	var e interface{} = &emp{}
+
+	t1 := reflect.TypeOf(e)
+	el := t1.Elem()
+	fmt.Println(el)
+	v := reflect.ValueOf(e)
+	fmt.Printf("val1 = %#v\n", v)
+	fmt.Println(v.Kind())
+	el1 := v.Elem()
+	fmt.Printf("val2 = %#v\n", el1)
+	i := el1.Interface()
+	i2 := i.(emp)
+	fmt.Printf("val2 = %#v\n", i2)
+
+	f, _ := t1.Elem().FieldByName("dp")
+	fmt.Println(f)
+	fmt.Println(f.Type.Kind())
+	fmt.Println(f.Type.Elem().Kind())
+
+}
