@@ -53,43 +53,43 @@ type dep struct {
 func Test_eligible(t *testing.T) {
 	ty := reflect.TypeOf(emp{})
 	sf, _ := ty.FieldByName("dv")
-	err := eigible(sf)
+	_, err := eligible(sf)
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}
 
 	sf, _ = ty.FieldByName("dv1")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}
 
 	sf, _ = ty.FieldByName("dv2")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 1 {
 		t.Errorf(err[0].Error())
 	}
 
 	sf, _ = ty.FieldByName("dv3")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}
 
 	sf, _ = ty.FieldByName("dp")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}
 
 	sf, _ = ty.FieldByName("dp2")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 1 {
 		t.Errorf("_fuse tag for field dp2 should contain 2 pieces of info (<name>,'val or ptr')")
 	}
 
 	sf, _ = ty.FieldByName("dp3")
-	err = eigible(sf)
+	_, err = eligible(sf)
 	if len(err) != 0 {
 		t.Errorf(err[0].Error())
 	}

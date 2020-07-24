@@ -5,10 +5,10 @@ func M1() string {
 }
 
 type OrderController struct {
-	//s       string
-	OrdPtr  *OrderService `_fuse:"OrdSvc"`
-	OrdSvc  IOrderService `_fuse:"OrdSvc"`
-	OrdSvc2 OrderService  `_fuse:"OrdSvc"`
+	s       string
+	OrdPtr  *OrderService `_fuse:"OrdSvc,ptr"`
+	OrdSvc  IOrderService `_fuse:"OrdSvc,val"`
+	OrdSvc2 OrderService  `_fuse:"OrdSvc,val"`
 }
 
 func (ordCtrl *OrderController) Order(id string) error {
