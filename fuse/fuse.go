@@ -51,6 +51,10 @@ func (b *builder) Register(entries []Entry) []error {
 	for _, c := range b.Registry {
 		for i := 0; i < c.Typ.NumField(); i++ {
 			sf := c.Typ.Field(i)
+			fmt.Println(sf.Type.Kind())
+			fmt.Println(sf.Type.Elem())
+			fmt.Println(sf.Type.Elem().Kind())
+			fmt.Println(sf.Type)
 			switch sf.Type.Kind() {
 			case reflect.Interface, reflect.Struct:
 				fmt.Println("Interface")
@@ -63,6 +67,60 @@ func (b *builder) Register(entries []Entry) []error {
 	fmt.Println("")
 
 	return nil
+}
+
+func eigible(sf reflect.StructField) (err []error) {
+	err = make([]error, 0)
+	err = tagcheck(sf)
+	if len(err) > 0 {
+		return
+	}
+	/*
+		if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
+			tag, ok := sf.Tag.Lookup("_fuse")
+			if !ok {
+				return
+			}
+			if ok {
+				fmt.Println("fusing.... ", tag)
+				parts := strings.Split(tag, ",")
+				if len(parts) != 2 {
+					e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
+					err = append(err, errors.New(e))
+					return
+				}
+			}
+		}
+	*/
+
+	if sf.Type.Kind() == reflect.Ptr {
+		fmt.Println(sf.Type.Elem())
+		fmt.Println(sf.Type.Elem().Kind())
+		fmt.Println()
+	}
+
+	return
+
+}
+
+func tagcheck(sf reflect.StructField) (err []error) {
+	err = make([]error, 0)
+	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct {
+		tag, ok := sf.Tag.Lookup("_fuse")
+		if !ok {
+			return
+		}
+		if ok {
+			fmt.Println("fusing.... ", tag)
+			parts := strings.Split(tag, ",")
+			if len(parts) != 2 {
+				e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
+				err = append(err, errors.New(e))
+				return
+			}
+		}
+	}
+	return
 }
 
 func (b *builder) Find(name string) interface{} {
@@ -133,19 +191,21 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
 			return
 		}
-		if comp.Typ.AssignableTo(f.Type()) {
-			if f.Kind() == reflect.Interface || f.Kind() == reflect.Struct {
-				fmt.Println("Assignable")
-				of := reflect.ValueOf(comp.ValOfComp)
-				fmt.Println(of)
-				fmt.Println(of.Type())
-				fmt.Println(of.Kind())
-				fmt.Println(f.CanAddr())
-				fmt.Println(f.CanSet())
-				f.Set(of)
-			}
+		fmt.Println(f.Kind())
+		if !(f.Kind() == reflect.Interface || f.Kind() == reflect.Struct) {
+			return
+		}
+		switch {
 
 		}
+		fmt.Println("Assignable")
+		of := reflect.ValueOf(comp.ValOfComp)
+		fmt.Println(of)
+		fmt.Println(of.Type())
+		fmt.Println(of.Kind())
+		fmt.Println(f.CanAddr())
+		fmt.Println(f.CanSet())
+		f.Set(of)
 		fmt.Println()
 	}
 }

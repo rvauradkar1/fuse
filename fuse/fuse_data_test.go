@@ -5,7 +5,8 @@ func M1() string {
 }
 
 type OrderController struct {
-	s       string
+	//s       string
+	OrdPtr  *OrderService `_fuse:"OrdSvc"`
 	OrdSvc  IOrderService `_fuse:"OrdSvc"`
 	OrdSvc2 OrderService  `_fuse:"OrdSvc"`
 }
