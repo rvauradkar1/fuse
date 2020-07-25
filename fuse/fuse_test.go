@@ -8,9 +8,8 @@ import (
 
 func Test_is_ok(t *testing.T) {
 	fmt.Println("Testing Test_is_ok")
-
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController{}}
+	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController{s: "first"}}
 	cs = append(cs, e1)
 	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{t: "second"}}
 	cs = append(cs, e2)
@@ -20,25 +19,29 @@ func Test_is_ok(t *testing.T) {
 
 	comp := fuse.Find("OrdCtrl")
 	s, ok := comp.(*OrderController)
+	//fmt.Println(c1.OrdPtr.findOrder())
+	//fmt.Println(c1.OrdSvc.findOrder())
 	fmt.Println(s)
 	fmt.Println(ok)
 	fmt.Println(s.OrdSvc == nil)
 	fmt.Println(s.OrdSvc.findOrder())
 	fmt.Println()
 	fmt.Println(s.OrdSvc2.findOrder())
+	fmt.Println(s.OrdPtr == nil)
+	fmt.Println(s.OrdPtr.findOrder())
 	fmt.Println()
 }
 
 type emp struct {
 	s   string
 	dv  dep
-	dv1 dep `_fuse`
-	dv2 dep `_fuse:"OrdSvc"`
-	dv3 dep `_fuse:"name,OrdSvc"`
+	dv1 dep `_fuse:"OrdSvc"`
+	dv2 dep `_fuse:""`
 	dp  *dep
 	dp2 *dep `_fuse:"OrdSvc"`
-	dp3 *dep `_fuse:"name,OrdSvc"`
 	it  itest
+	it2 itest `_fuse=""`
+	it3 itest `_fuse="name"`
 }
 
 func (e emp) m1() {
@@ -52,46 +55,58 @@ type dep struct {
 
 func Test_eligible(t *testing.T) {
 	ty := reflect.TypeOf(emp{})
-	sf, _ := ty.FieldByName("dv")
-	_, err := eligible(sf)
+	sf, _ := ty.FieldByName("s")
+	err := eligible(sf)
 	if len(err) != 0 {
-		t.Errorf(err[0].Error())
+		t.Errorf("there should be no error for field s, neither pointer nor interface")
+	}
+
+	sf, _ = ty.FieldByName("dv")
+	err = eligible(sf)
+	if len(err) != 0 {
+		t.Errorf("there should be no error for field dv, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dv1")
-	_, err = eligible(sf)
+	err = eligible(sf)
 	if len(err) != 0 {
-		t.Errorf(err[0].Error())
+		t.Errorf("there should be no error for field dv1, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dv2")
-	_, err = eligible(sf)
-	if len(err) != 1 {
-		t.Errorf(err[0].Error())
-	}
-
-	sf, _ = ty.FieldByName("dv3")
-	_, err = eligible(sf)
+	err = eligible(sf)
 	if len(err) != 0 {
-		t.Errorf(err[0].Error())
+		t.Errorf("there should be no error for field dv2, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dp")
-	_, err = eligible(sf)
+	err = eligible(sf)
 	if len(err) != 0 {
-		t.Errorf(err[0].Error())
+		t.Errorf("dp should not have been in error, ok to have fields with no _fuse tags")
 	}
 
 	sf, _ = ty.FieldByName("dp2")
-	_, err = eligible(sf)
-	if len(err) != 1 {
-		t.Errorf("_fuse tag for field dp2 should contain 2 pieces of info (<name>,'val or ptr')")
+	err = eligible(sf)
+	if len(err) != 0 {
+		t.Errorf("dp2 should not throw error as _fuse tag is set correctly")
 	}
 
-	sf, _ = ty.FieldByName("dp3")
-	_, err = eligible(sf)
+	sf, _ = ty.FieldByName("it")
+	err = eligible(sf)
 	if len(err) != 0 {
-		t.Errorf(err[0].Error())
+		t.Errorf("it should not have been in error, ok to have fields with no _fuse tags")
+	}
+
+	sf, _ = ty.FieldByName("it2")
+	err = eligible(sf)
+	if len(err) != 0 {
+		t.Errorf("_fuse tag for field it2 cannot be blank")
+	}
+
+	sf, _ = ty.FieldByName("it3")
+	err = eligible(sf)
+	if len(err) != 0 {
+		t.Errorf("it3 should not throw error as _fuse tag is set correctly")
 	}
 
 }

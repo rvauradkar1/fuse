@@ -7,18 +7,21 @@ import (
 	"strings"
 )
 
-type Fuse interface {
+type Fuse2 interface {
 	Register(entries []Entry) []error
 	Find(name string) interface{}
+	Entries() map[string]component
 }
 
-func New() Fuse {
+func New2() Fuse {
 	b := builder{}
 	b.init()
 	return &b
 }
 
-type component struct {
+//var registry = make(map[string]component)
+
+type component2 struct {
 	Name      string
 	Stateless bool
 	valType   reflect.Type
@@ -28,22 +31,26 @@ type component struct {
 	ValOfComp interface{}
 }
 
-type Entry struct {
+type Entry2 struct {
 	Name      string
 	Stateless bool
 	Instance  interface{}
 }
 
-type builder struct {
+type builder2 struct {
 	Registry map[string]component
 	Errors   []error
 }
 
-func (b *builder) init() {
+func (b *builder) Entries2() map[string]component {
+	return b.Registry
+}
+
+func (b *builder) init2() {
 	b.Registry = make(map[string]component)
 }
 
-func (b *builder) Register(entries []Entry) []error {
+func (b *builder) Register2(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
 		b.Register4(entries[i])
 	}
@@ -59,31 +66,35 @@ func (b *builder) Register(entries []Entry) []error {
 	return nil
 }
 
-func eligible(sf reflect.StructField) (err []error) {
+func eligible2(sf reflect.StructField) (success bool, err []error) {
 	err = make([]error, 0)
-	if sf.Type.Kind() == reflect.Interface ||
+	success = false
+	if sf.Type.Kind() == reflect.Interface || sf.Type.Kind() == reflect.Struct ||
 		(sf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == reflect.Struct) {
-		tag, ok := sf.Tag.Lookup("_fuse")
-		if !ok {
-			// ok not to have a tag at all
+		tag, ok1 := sf.Tag.Lookup("_fuse")
+		if !ok1 {
 			return
 		}
-		tag = strings.ReplaceAll(tag, " ", "")
-		// NOT ok to have a tag that is empty
-		if tag == "" {
-			e := fmt.Sprintf("_fuse tag cannot be empty for field %s, but is %s ", sf.Name, tag)
-			err = append(err, errors.New(e))
-			return
+		if ok1 {
+			fmt.Println("fusing.... ", tag)
+			parts := strings.Split(tag, ",")
+			if len(parts) != 2 {
+				e := fmt.Sprintf("fuse tag should contain 2 pieces of info (<name>,'val or ptr'), but is %s ", tag)
+				err = append(err, errors.New(e))
+				return
+			}
 		}
+		success = true
+		return
 	}
 	return
 }
 
-func (b *builder) Find(name string) interface{} {
+func (b *builder) Find2(name string) interface{} {
 	return b.Registry[name].PtrToComp
 }
 
-func (b *builder) wire2(c *component, sf reflect.StructField) {
+func (b *builder) wire22(c *component, sf reflect.StructField) {
 	err := eligible(sf)
 	if len(err) > 0 {
 		b.Errors = append(b.Errors, err...)
@@ -134,19 +145,19 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 	fmt.Println()
 }
 
-func tag(sf reflect.StructField) (name, typ string) {
+func tag2(sf reflect.StructField) (name, typ string) {
 	val, _ := sf.Tag.Lookup("_fuse")
 	parts := strings.Split(val, ",")
 	return parts[0], parts[1]
 }
 
-func (b *builder) wire3(c *component, sf reflect.StructField) {
+func (b *builder) wire32(c *component, sf reflect.StructField) {
 	fmt.Println(sf)
 	fmt.Println(sf.Type.Kind())
 	fmt.Println(sf.Type.Elem().Kind())
 }
 
-func (b *builder) Register3(c Entry) {
+func (b *builder) Register32(c Entry) {
 	var o interface{} = c.Instance
 	v := reflect.ValueOf(o)
 	o2 := reflect.Indirect(v)
@@ -156,7 +167,7 @@ func (b *builder) Register3(c Entry) {
 	b.Registry[c.Name] = c2
 }
 
-func (b *builder) Register4(c Entry) {
+func (b *builder) Register42(c Entry) {
 	var o interface{} = c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()

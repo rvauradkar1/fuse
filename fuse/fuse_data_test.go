@@ -24,7 +24,7 @@ type OrderService struct {
 }
 
 func (o OrderService) findOrder() string {
-	return "order"
+	return o.t
 }
 
 type AuthService struct {
