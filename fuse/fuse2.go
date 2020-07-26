@@ -94,6 +94,28 @@ func (b *builder) Find2(name string) interface{} {
 	return b.Registry[name].PtrToComp
 }
 
+func tag(sf reflect.StructField) (name, typ string) {
+	val, _ := sf.Tag.Lookup("_fuse")
+	parts := strings.Split(val, ",")
+	return parts[0], parts[1]
+}
+
+func (b *builder) wire3(c *component, sf reflect.StructField) {
+	fmt.Println(sf)
+	fmt.Println(sf.Type.Kind())
+	fmt.Println(sf.Type.Elem().Kind())
+}
+
+func (b *builder) Register3(c Entry) {
+	var o interface{} = c.Instance
+	v := reflect.ValueOf(o)
+	o2 := reflect.Indirect(v)
+	val := o2.Interface()
+
+	c2 := component{Name: c.Name, Stateless: c.Stateless, valType: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
+	b.Registry[c.Name] = c2
+}
+
 func (b *builder) wire22(c *component, sf reflect.StructField) {
 	err := eligible(sf)
 	if len(err) > 0 {

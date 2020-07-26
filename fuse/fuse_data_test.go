@@ -1,14 +1,16 @@
 package fuse
 
+import "fmt"
+
 func M1() string {
 	return "testing"
 }
 
 type OrderController struct {
 	s       string
-	OrdPtr  *OrderService `_fuse:"OrdSvc,ptr"`
-	OrdSvc  IOrderService `_fuse:"OrdSvc,val"`
-	OrdSvc2 OrderService  `_fuse:"OrdSvc,val"`
+	OrdPtr  *OrderService `_fuse:"OrdSvc"`
+	OrdSvc  IOrderService `_fuse:"OrdSvc"`
+	OrdSvc2 OrderService  `_fuse:"OrdSvc"`
 }
 
 func (ordCtrl *OrderController) Order(id string) error {
@@ -34,4 +36,38 @@ type OrderDB struct {
 }
 
 type CartService struct {
+}
+
+type Isvc1 interface {
+	M1()
+}
+
+type Svc1 struct {
+	S2 Isvc2 `_fuse:"svc2"`
+	S3 *Svc3 `_fuse:"svc3"`
+	s  string
+}
+
+func (i Svc1) M1() {
+	fmt.Println("Inside svc1 M1")
+}
+
+type Isvc2 interface {
+	M2()
+}
+
+type Svc2 struct {
+	s string
+}
+
+func (i Svc2) M2() {
+	fmt.Println("Inside svc2 M2")
+}
+
+type Svc3 struct {
+	s string
+}
+
+func M3() {
+	fmt.Println("Inside svc3 M3")
 }

@@ -65,7 +65,7 @@ func eligible(sf reflect.StructField) (err []error) {
 		(sf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == reflect.Struct) {
 		tag, ok := sf.Tag.Lookup("_fuse")
 		if !ok {
-			// ok not to have a tag at all
+			// ok not to have a tag at all, not an error
 			return
 		}
 		tag = strings.ReplaceAll(tag, " ", "")
@@ -80,7 +80,12 @@ func eligible(sf reflect.StructField) (err []error) {
 }
 
 func (b *builder) Find(name string) interface{} {
-	return b.Registry[name].PtrToComp
+	c := b.Registry[name]
+	if c.Stateless {
+		return c.PtrToComp
+	} else {
+		return b.create(c)
+	}
 }
 
 func (b *builder) wire2(c *component, sf reflect.StructField) {
@@ -89,20 +94,24 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 		b.Errors = append(b.Errors, err...)
 		return
 	}
-	name, _ := tag(sf)
+	name, _ := sf.Tag.Lookup("_fuse")
 	fmt.Println("fusing.... ", name)
-	fmt.Println("value.............")
-	fmt.Println(c.PtrValue.Elem().CanAddr())
-	fmt.Println(c.PtrValue.Elem().CanSet())
-	fmt.Println()
 	elem := c.PtrValue.Elem()
 	f := elem.FieldByIndex(sf.Index)
 	fmt.Printf("field = %#v\n", f)
-	comp := b.Registry[name]
-	fmt.Println(f.Type())
+	comp, ok := b.Registry[name]
+	if !ok {
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("component for field %s in %s not found", sf.Name, c.valType)))
+		return
+	}
+	fmt.Println("field type = ", f.Type(), " comp type = ", comp.valType)
 	fmt.Println(f.Kind())
+	if !(f.CanAddr() && f.CanSet()) {
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not private, cannot set", sf.Name, c.ValOfComp)))
+		return
+	}
 	switch f.Kind() {
-	case reflect.Struct, reflect.Interface:
+	case reflect.Interface:
 		if !comp.valType.AssignableTo(f.Type()) {
 			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
 			return
@@ -134,38 +143,35 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 	fmt.Println()
 }
 
-func tag(sf reflect.StructField) (name, typ string) {
-	val, _ := sf.Tag.Lookup("_fuse")
-	parts := strings.Split(val, ",")
-	return parts[0], parts[1]
-}
-
-func (b *builder) wire3(c *component, sf reflect.StructField) {
-	fmt.Println(sf)
-	fmt.Println(sf.Type.Kind())
-	fmt.Println(sf.Type.Elem().Kind())
-}
-
-func (b *builder) Register3(c Entry) {
-	var o interface{} = c.Instance
-	v := reflect.ValueOf(o)
-	o2 := reflect.Indirect(v)
-	val := o2.Interface()
-
-	c2 := component{Name: c.Name, Stateless: c.Stateless, valType: o2.Type(), PtrValue: v, PtrToComp: o, ValOfComp: val}
-	b.Registry[c.Name] = c2
-}
-
 func (b *builder) Register4(c Entry) {
 	var o interface{} = c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
 	val := elem.Interface()
 	valType := reflect.TypeOf(val)
-	ptrType := reflect.TypeOf(c.Instance)
+	ptrType := reflect.TypeOf(o)
 
 	c2 := component{Name: c.Name, Stateless: c.Stateless, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
 	b.Registry[c.Name] = c2
+}
+
+func (b *builder) create(oldc component) interface{} {
+	t := oldc.valType
+	ins := reflect.New(t)
+	o := ins.Interface()
+	refValue := reflect.ValueOf(o)
+	elem := refValue.Elem()
+	val := elem.Interface()
+	valType := reflect.TypeOf(val)
+	ptrType := reflect.TypeOf(o)
+
+	newc := component{Name: oldc.Name, Stateless: oldc.Stateless, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o, ValOfComp: val}
+
+	for i := 0; i < newc.valType.NumField(); i++ {
+		sf := newc.valType.Field(i)
+		b.wire2(&newc, sf)
+	}
+	return newc.PtrToComp
 }
 
 // Requirements
@@ -173,6 +179,7 @@ func (b *builder) Register4(c Entry) {
 // Minimal footprint, small overhead
 // Supports Stateless as well as stateful components
 // Implements ResourceLocator and Dependency Injection
-// Support struct and interface type
-// Support pointer as well as value receivers
+// Support struct and interface pointer receivers
+// Multiple, isolated resource graphs, no centralized resource graphs
+// NO Support for value receivers
 // Generates mocks for unit-testing
