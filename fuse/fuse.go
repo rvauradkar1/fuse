@@ -45,7 +45,7 @@ func (b *builder) init() {
 
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
-		b.Register4(entries[i])
+		b.register2(entries[i])
 	}
 	for _, c := range b.Registry {
 		for i := 0; i < c.valType.NumField(); i++ {
@@ -53,9 +53,6 @@ func (b *builder) Register(entries []Entry) []error {
 			b.wire2(&c, sf)
 		}
 	}
-	fmt.Println(b.Registry)
-	fmt.Println("")
-
 	return nil
 }
 
@@ -104,46 +101,33 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("component for field %s in %s not found", sf.Name, c.valType)))
 		return
 	}
-	fmt.Println("field type = ", f.Type(), " comp type = ", comp.valType)
-	fmt.Println(f.Kind())
 	if !(f.CanAddr() && f.CanSet()) {
-		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not private, cannot set", sf.Name, c.ValOfComp)))
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not private, cannot set", sf.Name, c.valType)))
 		return
 	}
 	switch f.Kind() {
 	case reflect.Interface:
 		if !comp.valType.AssignableTo(f.Type()) {
-			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
+			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
 			return
 		}
 		fmt.Println("Assignable")
-		of := reflect.ValueOf(comp.ValOfComp)
-		fmt.Println(of)
-		fmt.Println(of.Type())
-		fmt.Println(of.Kind())
-		fmt.Println(f.CanAddr())
-		fmt.Println(f.CanSet())
+		//of := reflect.ValueOf(comp.ValOfComp)
+		of := reflect.ValueOf(comp.PtrToComp)
 		f.Set(of)
 	case reflect.Ptr:
 		if !comp.ptrType.AssignableTo(f.Type()) {
-			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
+			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
 			return
 		}
 		fmt.Println("Assignable")
 		of := reflect.ValueOf(comp.PtrToComp)
-		fmt.Println(of)
-		fmt.Println(of.Type())
-		fmt.Println(of.Kind())
-		fmt.Println(f.CanAddr())
-		fmt.Println(f.CanSet())
 		f.Set(of)
 	default:
 	}
-
-	fmt.Println()
 }
 
-func (b *builder) Register4(c Entry) {
+func (b *builder) register2(c Entry) {
 	var o interface{} = c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
