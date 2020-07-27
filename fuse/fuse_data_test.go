@@ -18,9 +18,11 @@ func (ordCtrl *OrderController) Order(id string) error {
 }
 
 type OrderController1 struct {
-	s      string
-	OrdPtr *OrderService `_fuse:"OrdSvc"`
-	OrdSvc IOrderService `_fuse:"OrdSvc"`
+	s       string `_fuse:"OrdSvc"`
+	t       string
+	aOrdPtr *OrderService `_fuse:"OrdSvc"`
+	OrdPtr  *OrderService `_fuse:"OrdSvc"`
+	OrdSvc  IOrderService `_fuse:"OrdSvc"`
 }
 
 func (ordCtrl *OrderController1) Order(id string) error {

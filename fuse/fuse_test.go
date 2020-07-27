@@ -2,9 +2,18 @@ package fuse
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	// call flag.Parse() here if TestMain uses flags
+	fmt.Println("BEFORE---------------------")
+	i := m.Run()
+	fmt.Println("AFTER---------------------")
+	os.Exit(i)
+}
 
 func Test_is_ok(t *testing.T) {
 	fmt.Println("Testing Test_is_ok")
@@ -15,21 +24,26 @@ func Test_is_ok(t *testing.T) {
 	cs = append(cs, e2)
 
 	fuse := New()
-	fuse.Register(cs)
+	errors := fuse.Register(cs)
+	if len(errors) > 0 {
+		t.Errorf("there should be no errors")
+	}
 
 	comp := fuse.Find("OrdCtrl")
 	s, ok := comp.(*OrderController)
 	fmt.Println(s.OrdPtr.findOrder())
-	//fmt.Println(c1.OrdSvc.findOrder())
-	fmt.Println(s)
-	fmt.Println(ok)
-	fmt.Println(s.OrdSvc == nil)
+	if !ok {
+		t.Errorf("should have recorded OrdCtrl")
+	}
+	if s.OrdSvc == nil {
+		t.Errorf("should have wired in OrdSvc")
+	}
 	fmt.Println(s.OrdSvc.findOrder())
-	//fmt.Println(s.OrdSvc2 == nil)
 	fmt.Println(s.OrdSvc2.findOrder())
-	fmt.Println(s.OrdPtr == nil)
+	if s.OrdPtr == nil {
+		t.Errorf("should have wired in OrdSvc")
+	}
 	fmt.Println(s.OrdPtr.findOrder())
-	fmt.Println()
 }
 
 func Test_no_comp_found(t *testing.T) {
@@ -42,7 +56,24 @@ func Test_no_comp_found(t *testing.T) {
 
 	fuse := New()
 	errors := fuse.Register(cs)
-	if len(errors) != 2 {
+	fmt.Println(len(errors))
+	if len(errors) != 3 {
+		t.Error("There should have been 2 errors for comp not found")
+	}
+	fmt.Println(errors)
+}
+
+func Test_no_addr_set(t *testing.T) {
+	fmt.Println("Testing Test_is_ok")
+	cs := make([]Entry, 0)
+	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
+	cs = append(cs, e1)
+	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{t: "second"}}
+	cs = append(cs, e2)
+
+	fuse := New()
+	errors := fuse.Register(cs)
+	if len(errors) != 1 {
 		t.Error("There should have been 2 errors for comp not found")
 	}
 	fmt.Println(errors)
@@ -146,31 +177,14 @@ func Test_create(t *testing.T) {
 	fuse := New()
 	fuse.Register(cs)
 	c := fuse.Find("svc1")
-	c1 := c.(*Svc1)
+	c1, ok := c.(*Svc1)
+	if !ok {
+		t.Errorf("should have recorded Svc1")
+	}
 	c1.M1()
-	c2 := c.(Isvc1)
+	c2, ok := c.(Isvc1)
+	if !ok {
+		t.Errorf("should have recorded Svc1")
+	}
 	c2.M1()
-	fmt.Println(c)
-}
-
-func Test_ptr(t *testing.T) {
-	var e interface{} = &emp{}
-
-	t1 := reflect.TypeOf(e)
-	el := t1.Elem()
-	fmt.Println(el)
-	v := reflect.ValueOf(e)
-	fmt.Printf("val1 = %#v\n", v)
-	fmt.Println(v.Kind())
-	el1 := v.Elem()
-	fmt.Printf("val2 = %#v\n", el1)
-	i := el1.Interface()
-	i2 := i.(emp)
-	fmt.Printf("val2 = %#v\n", i2)
-
-	f, _ := t1.Elem().FieldByName("dp")
-	fmt.Println(f)
-	fmt.Println(f.Type.Kind())
-	fmt.Println(f.Type.Elem().Kind())
-
 }

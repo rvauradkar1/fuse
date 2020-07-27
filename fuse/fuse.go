@@ -88,29 +88,41 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 		return
 	}
 	if !(f.CanAddr() && f.CanSet()) {
-		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not private, cannot set", sf.Name, c.valType)))
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not public, cannot set", sf.Name, c.valType)))
 		return
 	}
-	switch f.Kind() {
-	case reflect.Interface:
-		if !comp.valType.AssignableTo(f.Type()) {
-			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
-			return
-		}
-		fmt.Println("Assignable")
-		//of := reflect.ValueOf(comp.ValOfComp)
-		of := reflect.ValueOf(comp.PtrToComp)
-		f.Set(of)
-	case reflect.Ptr:
-		if !comp.ptrType.AssignableTo(f.Type()) {
-			b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
-			return
-		}
-		fmt.Println("Assignable")
-		of := reflect.ValueOf(comp.PtrToComp)
-		f.Set(of)
-	default:
+
+	if !comp.ptrType.AssignableTo(f.Type()) {
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
+		return
 	}
+	fmt.Println("Assignable")
+	//of := reflect.ValueOf(comp.ValOfComp)
+	of := reflect.ValueOf(comp.PtrToComp)
+	f.Set(of)
+	/*
+		switch f.Kind() {
+		case reflect.Interface:
+			if !comp.ptrType.AssignableTo(f.Type()) {
+				b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
+				return
+			}
+			fmt.Println("Assignable")
+			//of := reflect.ValueOf(comp.ValOfComp)
+			of := reflect.ValueOf(comp.PtrToComp)
+			f.Set(of)
+		case reflect.Ptr:
+			if !comp.ptrType.AssignableTo(f.Type()) {
+				b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
+				return
+			}
+			fmt.Println("Assignable")
+			of := reflect.ValueOf(comp.PtrToComp)
+			f.Set(of)
+		default:
+		}
+
+	*/
 }
 
 func (b *builder) register2(c Entry) {
