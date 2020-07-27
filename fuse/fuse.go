@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 type Fuse interface {
@@ -53,27 +52,16 @@ func (b *builder) Register(entries []Entry) []error {
 			b.wire2(&c, sf)
 		}
 	}
-	return nil
+	return b.Errors
 }
 
-func eligible(sf reflect.StructField) (err []error) {
-	err = make([]error, 0)
+func eligible(sf reflect.StructField) bool {
 	if sf.Type.Kind() == reflect.Interface ||
 		(sf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == reflect.Struct) {
-		tag, ok := sf.Tag.Lookup("_fuse")
-		if !ok {
-			// ok not to have a tag at all, not an error
-			return
-		}
-		tag = strings.ReplaceAll(tag, " ", "")
-		// NOT ok to have a tag that is empty
-		if tag == "" {
-			e := fmt.Sprintf("_fuse tag cannot be empty for field %s, but is %s ", sf.Name, tag)
-			err = append(err, errors.New(e))
-			return
-		}
+		_, ok := sf.Tag.Lookup("_fuse")
+		return ok
 	}
-	return
+	return false
 }
 
 func (b *builder) Find(name string) interface{} {
@@ -86,9 +74,7 @@ func (b *builder) Find(name string) interface{} {
 }
 
 func (b *builder) wire2(c *component, sf reflect.StructField) {
-	err := eligible(sf)
-	if len(err) > 0 {
-		b.Errors = append(b.Errors, err...)
+	if !eligible(sf) {
 		return
 	}
 	name, _ := sf.Tag.Lookup("_fuse")

@@ -32,6 +32,38 @@ func Test_is_ok(t *testing.T) {
 	fmt.Println()
 }
 
+func Test_no_comp_found(t *testing.T) {
+	fmt.Println("Testing Test_is_ok")
+	cs := make([]Entry, 0)
+	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
+	cs = append(cs, e1)
+	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{t: "second"}}
+	cs = append(cs, e2)
+
+	fuse := New()
+	errors := fuse.Register(cs)
+	if len(errors) != 2 {
+		t.Error("There should have been 2 errors for comp not found")
+	}
+	fmt.Println(errors)
+}
+
+func Test_no_annot_assign(t *testing.T) {
+	fmt.Println("Testing Test_is_ok")
+	cs := make([]Entry, 0)
+	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController2{s: "first"}}
+	cs = append(cs, e1)
+	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{t: "second"}}
+	cs = append(cs, e2)
+
+	fuse := New()
+	errors := fuse.Register(cs)
+	if len(errors) != 2 {
+		t.Error("There should have been 2 errors for comp not assignable")
+	}
+	fmt.Println(errors)
+}
+
 type emp struct {
 	s   string
 	dv  dep
@@ -40,8 +72,8 @@ type emp struct {
 	dp  *dep
 	dp2 *dep `_fuse:"OrdSvc"`
 	it  itest
-	it2 itest `_fuse=""`
-	it3 itest `_fuse="name"`
+	it2 itest `_fuse=" "`
+	it3 itest `_fuse:"name"`
 }
 
 func (e emp) m1() {
@@ -56,59 +88,49 @@ type dep struct {
 func Test_eligible(t *testing.T) {
 	ty := reflect.TypeOf(emp{})
 	sf, _ := ty.FieldByName("s")
-	err := eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("there should be no error for field s, neither pointer nor interface")
+	if eligible(sf) {
+		t.Errorf("field s should not be eligible, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dv")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("there should be no error for field dv, neither pointer nor interface")
+	if eligible(sf) {
+		t.Errorf("field s should not be eligible, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dv1")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("there should be no error for field dv1, neither pointer nor interface")
+	if eligible(sf) {
+		t.Errorf("field s should not be eligible, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dv2")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("there should be no error for field dv2, neither pointer nor interface")
+	if eligible(sf) {
+		t.Errorf("field s should not be eligible, neither pointer nor interface")
 	}
 
 	sf, _ = ty.FieldByName("dp")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("dp should not have been in error, ok to have fields with no _fuse tags")
+	if eligible(sf) {
+		t.Errorf("dp should not be eligible")
 	}
 
 	sf, _ = ty.FieldByName("dp2")
-	err = eligible(sf)
-	if len(err) != 0 {
+	if !eligible(sf) {
 		t.Errorf("dp2 should not throw error as _fuse tag is set correctly")
 	}
 
 	sf, _ = ty.FieldByName("it")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("it should not have been in error, ok to have fields with no _fuse tags")
+	if eligible(sf) {
+		t.Errorf("it should not be eligible")
 	}
 
 	sf, _ = ty.FieldByName("it2")
-	err = eligible(sf)
-	if len(err) != 0 {
-		t.Errorf("_fuse tag for field it2 cannot be blank")
+	if eligible(sf) {
+		t.Errorf("it2 should not be eligible")
 	}
 
 	sf, _ = ty.FieldByName("it3")
-	err = eligible(sf)
-	if len(err) != 0 {
+	if !eligible(sf) {
 		t.Errorf("it3 should not throw error as _fuse tag is set correctly")
 	}
-
 }
 
 func Test_create(t *testing.T) {

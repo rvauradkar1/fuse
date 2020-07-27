@@ -17,6 +17,26 @@ func (ordCtrl *OrderController) Order(id string) error {
 	return nil
 }
 
+type OrderController1 struct {
+	s      string
+	OrdPtr *OrderService `_fuse:"OrdSvc"`
+	OrdSvc IOrderService `_fuse:"OrdSvc"`
+}
+
+func (ordCtrl *OrderController1) Order(id string) error {
+	return nil
+}
+
+type OrderController2 struct {
+	s      string
+	OrdPtr *OrderService `_fuse:"OrdCtrl"`
+	OrdSvc IOrderService `_fuse:"OrdCtrl"`
+}
+
+func (ordCtrl *OrderController2) Order(id string) error {
+	return nil
+}
+
 type IOrderService interface {
 	findOrder() string
 }
