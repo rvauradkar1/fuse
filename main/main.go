@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/rvauradkar1/fuse/mock/lvl1"
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
+	"github.com/rvauradkar1/fuse/main/lvl1"
+	"github.com/rvauradkar1/fuse/main/lvl1/lvl2"
 )
 
 const letter = `
@@ -40,7 +40,7 @@ type TypeInfo struct {
 	PkgPath    string
 	PkgString  string
 	Pkg        string
-	Fns        []*FuncInfo
+	Fns        []FuncInfo
 }
 
 type FuncInfo struct {
@@ -57,64 +57,26 @@ func main() {
 
 func pop() {
 
-	var in interface{} = &lvl1.L1{}
-	tptr := reflect.TypeOf(in)
-	info := TypeInfo{Typ: tptr, StructName: tptr.Name(), PkgPath: tptr.PkgPath(), PkgString: tptr.String(), Pkg: ""}
+	t := reflect.TypeOf(lvl1.L1{})
+	info := TypeInfo{Typ: t, StructName: t.Name(), PkgPath: t.PkgPath(), PkgString: t.String(), Pkg: ""}
 	fmt.Printf("%+v\n", info)
-	v := reflect.ValueOf(in)
-	v1 := v.Elem().Interface()
-	fmt.Println(v1)
-	tval := reflect.TypeOf(v1)
-	fmt.Println(tval.NumMethod())
-	for i := 0; i < tval.NumMethod(); i++ {
-		m := tval.Method(i)
+	fmt.Println(t)
+	fmt.Println(t.Name())
+	fmt.Println(t.PkgPath())
+	for i := 0; i < t.NumMethod(); i++ {
+		m := t.Method(i)
 		fmt.Printf("%+v\n", m)
 		t1 := m.Type
-		m2 := v.Method(i)
-		fmt.Println(m2.Kind())
-		fmt.Println(m2.Type())
+
 		fmt.Println(t1.Name())
-		fn := &FuncInfo{}
-		info.Fns = append(info.Fns, fn)
-		fmt.Println(t1.NumIn())
-		for j := 0; j < t1.NumIn(); j++ {
-			t2 := t1.In(j)
-			fmt.Println(t2)
-			fmt.Println(t2.Name())
-			fmt.Println(t2.Kind())
-
-			fn.Fn = m.Name
-			//fmt.Println(fn == fn)
-			if reflect.Ptr == t2.Kind() {
-				fn.PtrOrVal = "*p"
-			} else {
-				fn.PtrOrVal = "v"
-			}
-			fn.Params = append(fn.Params, Param{Typ: t2, Name: t2.Name()})
-
-		}
-		fmt.Println(t1.NumOut())
-		for j := 0; j < t1.NumOut(); j++ {
-			t2 := t1.Out(i)
-			fmt.Println(t2)
-			fmt.Println(t2.Name())
-			fmt.Println(t2.Kind())
-			fn := FuncInfo{}
-			fn.Fn = m.Name
-			if reflect.Ptr == t2.Kind() {
-				fn.PtrOrVal = "*p"
-			} else {
-				fn.PtrOrVal = "v"
-			}
-			fn.Params = append(fn.Params, Param{Typ: t2, Name: t2.Name()})
-			fmt.Println()
-			//info.Fns = append(info.Fns, fn)
-		}
-
+		t2 := t1.In(0)
+		fmt.Println(t2)
+		fmt.Println(t2)
+		fmt.Println(t == t2)
+		fmt.Println(t1.In(1))
+		fmt.Println(t1.In(2))
+		fmt.Println(t1.Out(0))
 	}
-	fmt.Printf("%+v\n", info)
-	fmt.Println()
-
 }
 
 func exp() {
@@ -188,7 +150,7 @@ func gen() {
 	info := TypeInfo{
 		Pkg:        "test",
 		StructName: "str",
-		Fns:        []*FuncInfo{&FuncInfo{"M9", []Param{{reflect.TypeOf(""), "M11"}}, "*p"}},
+		Fns:        []FuncInfo{{"M9", []Param{{reflect.TypeOf(""), "M11"}}, "*p"}},
 	}
 
 	// Run the template to verify the output.
