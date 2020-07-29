@@ -7,32 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/rvauradkar1/fuse/mock/lvl1"
 	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
 )
 
-const letter = `
-package {{.Pkg}}
-type Mock{{.StructName}} struct{
-}
-{{$str:=.StructName}}
-{{range .Fns}}
-type {{.Fn}} func() {{.Params | printParams}}
-var {{.Fn}}Func {{.Fn}}
-func ({{.PtrOrVal}} Mock{{$str}}) {{.Fn}}func() {{.Params | printParams}} {
-	return {{.Fn}}Func()
-}
-{{end}}
-`
-
-func printParams(params []Param) string {
-	return "int"
-}
-
 type Param struct {
 	Typ  reflect.Type
 	Name string
+	Ptr  bool
 }
 type TypeInfo struct {
 	Typ        reflect.Type
@@ -40,80 +24,109 @@ type TypeInfo struct {
 	PkgPath    string
 	PkgString  string
 	Pkg        string
-	Fns        []*FuncInfo
+	Funcs      []*FuncInfo
+	Fields     []*FieldInfo
+}
+
+type FieldInfo struct {
+	Name  string
+	Typ   reflect.Type
+	TName string
+}
+
+func (t *TypeInfo) fnExists(name string) bool {
+	for _, fi := range t.Funcs {
+		if name == fi.Name {
+			return true
+		}
+	}
+	return false
 }
 
 type FuncInfo struct {
-	Fn       string
-	Params   []Param
-	PtrOrVal string
+	Name   string
+	Params []*Param
 }
 
 var funcMap template.FuncMap = make(map[string]interface{}, 0)
 
 func main() {
 	pop()
+	//fields()
+}
+
+func fields(t reflect.Type) []*FieldInfo {
+	fields := make([]*FieldInfo, 0)
+
+	el := t.Elem()
+	for i := 0; i < el.NumField(); i++ {
+		f := el.Field(i)
+		fi := FieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String()}
+		fields = append(fields, &fi)
+		fmt.Printf("%+v\n", f)
+	}
+	return fields
+}
+
+func printFields(fields []*FieldInfo) string {
+	var b strings.Builder
+	for _, f := range fields {
+		fmt.Fprintf(&b, "%s %s\n", f.Name, f.TName)
+	}
+	return b.String()
 }
 
 func pop() {
 
 	var in interface{} = &lvl1.L1{}
 	tptr := reflect.TypeOf(in)
-	info := TypeInfo{Typ: tptr, StructName: tptr.Name(), PkgPath: tptr.PkgPath(), PkgString: tptr.String(), Pkg: ""}
-	fmt.Printf("%+v\n", info)
+	//info := TypeInfo{Typ: tptr, StructName: tptr.Name(), PkgPath: tptr.PkgPath(), PkgString: tptr.String(), Pkg: ""}
 	v := reflect.ValueOf(in)
 	v1 := v.Elem().Interface()
-	fmt.Println(v1)
 	tval := reflect.TypeOf(v1)
-	fmt.Println(tval.NumMethod())
-	for i := 0; i < tval.NumMethod(); i++ {
-		m := tval.Method(i)
-		fmt.Printf("%+v\n", m)
-		t1 := m.Type
-		m2 := v.Method(i)
-		fmt.Println(m2.Kind())
-		fmt.Println(m2.Type())
-		fmt.Println(t1.Name())
-		fn := &FuncInfo{}
-		info.Fns = append(info.Fns, fn)
-		fmt.Println(t1.NumIn())
-		for j := 0; j < t1.NumIn(); j++ {
-			t2 := t1.In(j)
-			fmt.Println(t2)
-			fmt.Println(t2.Name())
-			fmt.Println(t2.Kind())
-
-			fn.Fn = m.Name
-			//fmt.Println(fn == fn)
-			if reflect.Ptr == t2.Kind() {
-				fn.PtrOrVal = "*p"
-			} else {
-				fn.PtrOrVal = "v"
+	info1 := TypeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: ""}
+	fmt.Println(info1)
+	types := []reflect.Type{tval, tptr}
+	for _, t := range types {
+		fmt.Println(t.NumMethod())
+		fmt.Println(t.Kind())
+		for i := 0; i < t.NumMethod(); i++ {
+			m := t.Method(i)
+			if info1.fnExists(m.Name) {
+				continue
 			}
-			fn.Params = append(fn.Params, Param{Typ: t2, Name: t2.Name()})
-
-		}
-		fmt.Println(t1.NumOut())
-		for j := 0; j < t1.NumOut(); j++ {
-			t2 := t1.Out(i)
-			fmt.Println(t2)
-			fmt.Println(t2.Name())
-			fmt.Println(t2.Kind())
-			fn := FuncInfo{}
-			fn.Fn = m.Name
-			if reflect.Ptr == t2.Kind() {
-				fn.PtrOrVal = "*p"
-			} else {
-				fn.PtrOrVal = "v"
+			fmt.Printf("%+v\n", m)
+			t1 := m.Type
+			fn := &FuncInfo{}
+			fn.Name = m.Name
+			info1.Funcs = append(info1.Funcs, fn)
+			fmt.Println(t1.NumIn())
+			for j := 0; j < t1.NumIn(); j++ {
+				t2 := t1.In(j)
+				ptr := false
+				if reflect.Ptr == t2.Kind() {
+					ptr = true
+				}
+				fn.Params = append(fn.Params, &Param{Typ: t2, Name: t2.Name(), Ptr: ptr})
 			}
-			fn.Params = append(fn.Params, Param{Typ: t2, Name: t2.Name()})
-			fmt.Println()
-			//info.Fns = append(info.Fns, fn)
+			fmt.Println(t1.NumOut())
+			for j := 0; j < t1.NumOut(); j++ {
+				t2 := t1.Out(j)
+				fn := FuncInfo{}
+				fn.Name = m.Name
+				ptr := false
+				if reflect.Ptr == t2.Kind() {
+					ptr = true
+				}
+				fn.Params = append(fn.Params, &Param{Typ: t2, Name: t2.Name(), Ptr: ptr})
+				fmt.Println()
+			}
 		}
-
+		info1.Fields = fields(tptr)
 	}
-	fmt.Printf("%+v\n", info)
+	fmt.Printf("%+v\n", info1)
 	fmt.Println()
+	gen(info1)
 
 }
 
@@ -177,20 +190,57 @@ func (Mockstr) M11func() int {
 	return M11Func()
 }
 
-func gen() {
+const letter = `
+package {{.Pkg}}
+type Mock{{.StructName}} struct{
+	{{.Fields | printFields }}
+}
+{{$str:=.StructName}}
+{{range .Funcs}}
+{{$rec:= . | receiver}}
+type {{.Name}} func() {{.Params | printParams}}
+var {{.Name}}Func {{.Name}}
+func ({{$rec}}Mock{{$str}}) {{.Name}}() {{.Params | printParams}} {
+	return {{.Name}}Func()
+}
+{{end}}
+`
+
+func printParams(params []*Param) string {
+	return "int"
+}
+
+func receiver(fn *FuncInfo) string {
+	if fn == nil {
+		return "error"
+	}
+	if len(fn.Params) == 0 {
+		return "error"
+	}
+	param := fn.Params[0]
+	if param.Ptr {
+		return "p *"
+	}
+	return "v "
+}
+
+func gen(info TypeInfo) {
 	funcMap["printParams"] = printParams
+	funcMap["receiver"] = receiver
+	funcMap["printFields"] = printFields
 
 	tmpl, err := template.New("test").Funcs(funcMap).Parse(letter)
 	if err != nil {
 		log.Fatalf("parsing: %s", err)
 	}
 
-	info := TypeInfo{
-		Pkg:        "test",
-		StructName: "str",
-		Fns:        []*FuncInfo{&FuncInfo{"M9", []Param{{reflect.TypeOf(""), "M11"}}, "*p"}},
-	}
-
+	/*
+		info := TypeInfo{
+			Pkg:        "test",
+			StructName: "str",
+			Funcs:        []*FuncInfo{&FuncInfo{"M9", []*Param{{reflect.TypeOf(""), "M11", false}}}},
+		}
+	*/
 	// Run the template to verify the output.
 	err = tmpl.Execute(os.Stdout, info)
 	if err != nil {

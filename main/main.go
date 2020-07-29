@@ -17,11 +17,11 @@ package {{.Pkg}}
 type Mock{{.StructName}} struct{
 }
 {{$str:=.StructName}}
-{{range .Fns}}
-type {{.Fn}} func() {{.Params | printParams}}
-var {{.Fn}}Func {{.Fn}}
-func ({{.PtrOrVal}} Mock{{$str}}) {{.Fn}}func() {{.Params | printParams}} {
-	return {{.Fn}}Func()
+{{range .Funcs}}
+type {{.Name}} func() {{.Params | printParams}}
+var {{.Name}}Func {{.Name}}
+func ({{.PtrOrVal}} Mock{{$str}}) {{.Name}}func() {{.Params | printParams}} {
+	return {{.Name}}Func()
 }
 {{end}}
 `
