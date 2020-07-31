@@ -93,7 +93,7 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 	}
 
 	if !comp.ptrType.AssignableTo(f.Type()) {
-		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.valType)))
+		b.Errors = append(b.Errors, errors.New(fmt.Sprintf("_fuse tag for field %s in component %T is not correct, check type", sf.Name, c.ValOfComp)))
 		return
 	}
 	fmt.Println("Assignable")

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -26,13 +27,14 @@ var mockStr *MockStr
 func Gen(m *MockStr) {
 	mockStr = m
 	for _, c := range m.Comps {
-		pop(c.PtrToComp)
+		pop(c)
 	}
 }
 
 type Component struct {
 	PtrToComp    interface{}
 	GenInterface bool
+	Basepath     string
 }
 
 type param struct {
@@ -42,6 +44,7 @@ type param struct {
 }
 type typeInfo struct {
 	Typ        reflect.Type
+	Basepath   string
 	StructName string
 	PkgPath    string
 	PkgString  string
@@ -110,15 +113,16 @@ func printFields(fields []*fieldInfo) string {
 	return b.String()
 }
 
-func pop(in interface{}) {
+func pop(c Component) {
 
 	//var in interface{} = &lvl1.L1{}
-	tptr := reflect.TypeOf(in)
-	//info := TypeInfo{Typ: tptr, StructName: tptr.Name(), PkgPath: tptr.PkgPath(), PkgString: tptr.String(), Pkg: ""}
-	v := reflect.ValueOf(in)
+	tptr := reflect.TypeOf(c.PtrToComp)
+	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	info = typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: ""}
+	basepath := c.Basepath
+	info = typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: "",
+		Basepath: basepath}
 	fmt.Println(info)
 	types := []reflect.Type{tval, tptr}
 	for _, t := range types {
@@ -239,9 +243,13 @@ func gen() {
 	}
 
 	// Run the template to verify the output.
-	err = tmpl.Execute(os.Stdout, info)
+	var b bytes.Buffer
+	err = tmpl.Execute(&b, info)
 	if err != nil {
 		log.Fatalf("execution: %s", err)
 	}
+	fn := info.Basepath + "/" + info.StructName + "Mock_test.go"
+	err = ioutil.WriteFile(fn, b.Bytes(), 0644)
+	fmt.Println(err)
 
 }

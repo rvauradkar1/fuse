@@ -41,17 +41,34 @@ func (ordCtrl *OrderController2) Order(id string) error {
 
 type IOrderService interface {
 	findOrder() string
+	saveOrder() string
 }
 
 type OrderService struct {
-	t string
+	T      string
+	Status string
 }
 
 func (o OrderService) findOrder() string {
-	return o.t
+	return o.T
+}
+
+func (o OrderService) saveOrder() string {
+	o.Status = "Saved"
+	return "saved"
+}
+
+type IAuthService interface {
+	auth() bool
 }
 
 type AuthService struct {
+	Status string
+}
+
+func (a *AuthService) auth() bool {
+	a.Status = "authenticated"
+	return true
 }
 
 type OrderDB struct {

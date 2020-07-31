@@ -20,7 +20,7 @@ func Test_is_ok(t *testing.T) {
 	cs := make([]Entry, 0)
 	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{t: "second"}}
+	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
@@ -51,7 +51,7 @@ func Test_no_comp_found(t *testing.T) {
 	cs := make([]Entry, 0)
 	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{t: "second"}}
+	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
@@ -68,7 +68,7 @@ func Test_no_addr_set(t *testing.T) {
 	cs := make([]Entry, 0)
 	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{t: "second"}}
+	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
@@ -84,7 +84,7 @@ func Test_no_annot_assign(t *testing.T) {
 	cs := make([]Entry, 0)
 	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController2{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{t: "second"}}
+	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
