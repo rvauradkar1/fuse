@@ -16,6 +16,11 @@ func TestMain(m *testing.M) {
 }
 
 func Test_is_ok(t *testing.T) {
+	var a1 *OrderService = &OrderService{}
+	var a2 IOrderService = &OrderService{}
+	t1 := reflect.TypeOf(&OrderService{})
+	fmt.Println(t1.AssignableTo(reflect.TypeOf(a1)))
+	fmt.Println(t1.AssignableTo(reflect.TypeOf(a2)))
 	fmt.Println("Testing Test_is_ok")
 	cs := make([]Entry, 0)
 	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController{s: "first"}}
@@ -24,12 +29,14 @@ func Test_is_ok(t *testing.T) {
 	cs = append(cs, e2)
 
 	fuse := New()
+	find := fuse.Find
 	errors := fuse.Register(cs)
 	if len(errors) > 0 {
 		t.Errorf("there should be no errors")
 	}
 
-	comp := fuse.Find("OrdCtrl")
+	//comp := fuse.Find("OrdCtrl")
+	comp := find("OrdCtrl")
 	s, ok := comp.(*OrderController)
 	fmt.Println(s.OrdPtr.findOrder())
 	if !ok {

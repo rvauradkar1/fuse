@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"github.com/rvauradkar1/fuse/mock/lvl1"
 )
@@ -43,6 +43,7 @@ type param struct {
 	Ptr  bool
 }
 type typeInfo struct {
+	Imports    []string
 	Typ        reflect.Type
 	Basepath   string
 	StructName string
@@ -98,6 +99,11 @@ func fields(t reflect.Type) []*fieldInfo {
 	el := t.Elem()
 	for i := 0; i < el.NumField(); i++ {
 		f := el.Field(i)
+		t2 := f.Type
+		fmt.Println("pkgpath = " + t2.PkgPath())
+		if t2.PkgPath() != "" {
+			info.Imports = append(info.Imports, t2.PkgPath())
+		}
 		fi := fieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String()}
 		fields = append(fields, &fi)
 		fmt.Printf("%+v\n", f)
@@ -121,7 +127,7 @@ func pop(c Component) {
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
 	basepath := c.Basepath
-	info = typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: "",
+	info = typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(basepath),
 		Basepath: basepath}
 	fmt.Println(info)
 	types := []reflect.Type{tval, tptr}
@@ -141,6 +147,10 @@ func pop(c Component) {
 			fmt.Println(t1.NumIn())
 			for j := 0; j < t1.NumIn(); j++ {
 				t2 := t1.In(j)
+				fmt.Println("pkgpath = " + t2.PkgPath())
+				if t2.PkgPath() != "" {
+					info.Imports = append(info.Imports, t2.PkgPath())
+				}
 				ptr := false
 				if reflect.Ptr == t2.Kind() {
 					ptr = true
@@ -150,6 +160,10 @@ func pop(c Component) {
 			fmt.Println(t1.NumOut())
 			for j := 0; j < t1.NumOut(); j++ {
 				t2 := t1.Out(j)
+				fmt.Println("pkgpath = " + t2.PkgPath())
+				if t2.PkgPath() != "" {
+					info.Imports = append(info.Imports, t2.PkgPath())
+				}
 				fn := funcInfo{}
 				fn.Name = m.Name
 				ptr := false
@@ -166,6 +180,14 @@ func pop(c Component) {
 	fmt.Println()
 	gen()
 
+}
+
+func pkg(basepath string) string {
+	spl := strings.Split(basepath, "/")
+	if len(spl) > 0 {
+		return spl[len(spl)-1]
+	}
+	return ""
 }
 
 func exp() {
@@ -200,6 +222,9 @@ func (Mockstr) M11func() int {
 
 const letter = `
 package {{.Pkg}}
+import (
+{{imports}}
+)
 type Mock{{.StructName}} struct{
 	{{.Fields | printFields }}
 }
@@ -232,10 +257,26 @@ func receiver(fn *funcInfo) string {
 	return "v "
 }
 
+func imports() string {
+	b := strings.Builder{}
+	for i := 0; i < len(info.Imports); i++ {
+		imp := info.Imports[i]
+		if !strings.Contains(b.String(), imp) && !strings.HasSuffix(imp, info.Pkg) {
+			b.WriteRune('"')
+			b.WriteString(imp)
+			b.WriteRune('"')
+			b.WriteRune('\n')
+		}
+	}
+	b1 := b.String()
+	return b1
+}
+
 func gen() {
 	funcMap["printParams"] = printParams
 	funcMap["receiver"] = receiver
 	funcMap["printFields"] = printFields
+	funcMap["imports"] = imports
 
 	tmpl, err := template.New("test").Funcs(funcMap).Parse(letter)
 	if err != nil {
@@ -251,5 +292,4 @@ func gen() {
 	fn := info.Basepath + "/" + info.StructName + "Mock_test.go"
 	err = ioutil.WriteFile(fn, b.Bytes(), 0644)
 	fmt.Println(err)
-
 }

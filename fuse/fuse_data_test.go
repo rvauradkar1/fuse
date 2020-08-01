@@ -7,10 +7,11 @@ func M1() string {
 }
 
 type OrderController struct {
-	s       string
-	OrdPtr  *OrderService `_fuse:"OrdSvc"`
-	OrdSvc  IOrderService `_fuse:"OrdSvc"`
-	OrdSvc2 OrderService  `_fuse:"OrdSvc"`
+	s            string
+	OrdPtr       *OrderService `_fuse:"OrdSvc"`
+	OrdSvc       IOrderService `_fuse:"OrdSvc"`
+	OrdSvc2      OrderService  `_fuse:"OrdSvc"`
+	OrderService `_fuse:"OrdSvc"`
 }
 
 func (ordCtrl *OrderController) Order(id string) error {
@@ -49,11 +50,11 @@ type OrderService struct {
 	Status string
 }
 
-func (o OrderService) findOrder() string {
+func (o *OrderService) findOrder() string {
 	return o.T
 }
 
-func (o OrderService) saveOrder() string {
+func (o *OrderService) saveOrder() string {
 	o.Status = "Saved"
 	return "saved"
 }
