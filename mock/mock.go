@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
-
-	"github.com/rvauradkar1/fuse/mock/lvl1"
 )
 
 type Mock interface {
@@ -25,23 +23,32 @@ type MockStr struct {
 var mockStr *MockStr
 
 func Gen(m *MockStr) {
+	output := bytes.Buffer{}
 	mockStr = m
 	for _, c := range m.Comps {
-		pop(c)
+		out := pop(c)
+		output.Write(out.Bytes())
 	}
+	fn := info.Basepath + "/" + info.StructName + "Mock_test.go"
+	s := output.String()
+	fmt.Println(s)
+	err := ioutil.WriteFile(fn, output.Bytes(), 0644)
+	fmt.Println(err)
 }
 
 type Component struct {
-	PtrToComp    interface{}
-	GenInterface bool
-	Basepath     string
+	PtrToComp interface{}
+	//GenInterface bool
+	//Basepath     string
 }
 
 type param struct {
-	Typ  reflect.Type
-	Name string
-	Ptr  bool
+	Input bool
+	Typ   reflect.Type
+	Name  string
+	Ptr   bool
 }
+
 type typeInfo struct {
 	Imports    []string
 	Typ        reflect.Type
@@ -78,6 +85,7 @@ type funcInfo struct {
 
 var funcMap template.FuncMap = make(map[string]interface{}, 0)
 
+/*
 func main1() {
 	m := MockStr{Basepath: "basepath"}
 	comps := make([]Component, 0)
@@ -85,6 +93,8 @@ func main1() {
 	m.Comps = comps
 	Gen(&m)
 }
+
+*/
 
 /*
 func main() {
@@ -119,14 +129,12 @@ func printFields(fields []*fieldInfo) string {
 	return b.String()
 }
 
-func pop(c Component) {
-
-	//var in interface{} = &lvl1.L1{}
+func pop(c Component) bytes.Buffer {
 	tptr := reflect.TypeOf(c.PtrToComp)
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	basepath := c.Basepath
+	basepath := mockStr.Basepath
 	info = typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(basepath),
 		Basepath: basepath}
 	fmt.Println(info)
@@ -155,7 +163,7 @@ func pop(c Component) {
 				if reflect.Ptr == t2.Kind() {
 					ptr = true
 				}
-				fn.Params = append(fn.Params, &param{Typ: t2, Name: t2.Name(), Ptr: ptr})
+				fn.Params = append(fn.Params, &param{Input: true, Typ: t2, Name: t2.Name(), Ptr: ptr})
 			}
 			fmt.Println(t1.NumOut())
 			for j := 0; j < t1.NumOut(); j++ {
@@ -164,13 +172,11 @@ func pop(c Component) {
 				if t2.PkgPath() != "" {
 					info.Imports = append(info.Imports, t2.PkgPath())
 				}
-				fn := funcInfo{}
-				fn.Name = m.Name
 				ptr := false
 				if reflect.Ptr == t2.Kind() {
 					ptr = true
 				}
-				fn.Params = append(fn.Params, &param{Typ: t2, Name: t2.Name(), Ptr: ptr})
+				fn.Params = append(fn.Params, &param{Input: false, Typ: t2, Name: t2.Name(), Ptr: ptr})
 				fmt.Println()
 			}
 		}
@@ -178,8 +184,30 @@ func pop(c Component) {
 	}
 	fmt.Printf("%+v\n", info)
 	fmt.Println()
-	gen()
+	return gen()
 
+}
+
+func gen() bytes.Buffer {
+	funcMap["printOutParams"] = printOutParams
+	funcMap["receiver"] = receiver
+	funcMap["printFields"] = printFields
+	funcMap["imports"] = imports
+
+	tmpl, err := template.New("test").Funcs(funcMap).Parse(letter)
+	if err != nil {
+		log.Fatalf("parsing: %s", err)
+	}
+
+	// Run the template to verify the output.
+	var b bytes.Buffer
+	err = tmpl.Execute(&b, info)
+	if err != nil {
+		log.Fatalf("execution: %s", err)
+	}
+
+	fmt.Println(err)
+	return b
 }
 
 func pkg(basepath string) string {
@@ -198,28 +226,6 @@ func exp() {
 	fmt.Println(ex)
 }
 
-type Read func() int
-
-var ReadFunc Read
-
-type MockStruct2 struct {
-}
-
-func (s MockStruct2) Read() int {
-	return ReadFunc()
-}
-
-type M11 func() int
-
-var M11Func M11
-
-type Mockstr struct {
-}
-
-func (Mockstr) M11func() int {
-	return M11Func()
-}
-
 const letter = `
 package {{.Pkg}}
 import (
@@ -231,16 +237,37 @@ type Mock{{.StructName}} struct{
 {{$str:=.StructName}}
 {{range .Funcs}}
 {{$rec:= . | receiver}}
-type {{.Name}} func() {{.Params | printParams}}
+type {{.Name}} func() {{.Params | printOutParams}}
 var {{.Name}}Func {{.Name}}
-func ({{$rec}}Mock{{$str}}) {{.Name}}() {{.Params | printParams}} {
+func ({{$rec}}Mock{{$str}}) {{.Name}}() {{.Params | printOutParams}} {
 	return {{.Name}}Func()
 }
 {{end}}
 `
 
-func printParams(params []*param) string {
-	return "int"
+func printOutParams(params []*param) string {
+	if len(params) == 0 {
+		return ""
+	}
+	b := strings.Builder{}
+	b.WriteString("(")
+	for i := 0; i < len(params); i++ {
+		p := params[i]
+		if p.Input {
+			continue
+		}
+		//b.WriteString(p.Name)
+		//b.WriteString(" ")
+		if p.Ptr {
+			//b.WriteString("*")
+		}
+		b.WriteString(p.Typ.String())
+		if i != len(params)-1 {
+			b.WriteString(",")
+		}
+	}
+	b.WriteString(")")
+	return b.String()
 }
 
 func receiver(fn *funcInfo) string {
@@ -270,26 +297,4 @@ func imports() string {
 	}
 	b1 := b.String()
 	return b1
-}
-
-func gen() {
-	funcMap["printParams"] = printParams
-	funcMap["receiver"] = receiver
-	funcMap["printFields"] = printFields
-	funcMap["imports"] = imports
-
-	tmpl, err := template.New("test").Funcs(funcMap).Parse(letter)
-	if err != nil {
-		log.Fatalf("parsing: %s", err)
-	}
-
-	// Run the template to verify the output.
-	var b bytes.Buffer
-	err = tmpl.Execute(&b, info)
-	if err != nil {
-		log.Fatalf("execution: %s", err)
-	}
-	fn := info.Basepath + "/" + info.StructName + "Mock_test.go"
-	err = ioutil.WriteFile(fn, b.Bytes(), 0644)
-	fmt.Println(err)
 }

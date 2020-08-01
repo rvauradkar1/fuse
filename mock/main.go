@@ -26,14 +26,18 @@ func main() {
 	//err = ioutil.WriteFile(s2+"/"+"tt.go", d1, 0644)
 	fmt.Println(err)
 
-	m := MockStr{}
+	basepath := "/Users/rvauradkar/go_code/src/github.com/rvauradkar1/fuse/mock"
+	m := MockStr{Basepath: basepath}
 	comps := make([]Component, 0)
-	basepath := "/Users/rvauradkar/go_code/src/github.com/rvauradkar1/fuse/mock/lvl1"
-	c := Component{PtrToComp: &lvl1.L1{}, GenInterface: false, Basepath: basepath}
+	c := Component{PtrToComp: &lvl1.L1{}}
 	comps = append(comps, c)
-	basepath = "/Users/rvauradkar/go_code/src/github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
-	c = Component{PtrToComp: &lvl2.L2{}, GenInterface: false, Basepath: basepath}
+	c = Component{PtrToComp: &lvl2.L2{}}
 	comps = append(comps, c)
 	m.Comps = comps
 	Gen(&m)
+
+	l1 := lvl1.L1{}
+	fmt.Println(l1.LM1(100, 1.2))
+
+	//l1mock := lvl1.
 }
