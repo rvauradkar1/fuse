@@ -11,6 +11,6 @@ type L3 struct {
 	time time.Duration
 }
 
-func (l L3) LM21(i int, f float32) string {
+func (l L3) LM3(i int, f float32) string {
 	return "return from LM3"
 }

@@ -17,5 +17,6 @@ type L2 struct {
 }
 
 func (l L2) LM21(i int, f float32) string {
-	return "return from LM1"
+	s := l.Il3.LM3(1, "")
+	return s + "  return from LM1"
 }

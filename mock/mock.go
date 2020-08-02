@@ -12,15 +12,15 @@ import (
 )
 
 type Mock interface {
-	Gen(m MockStr)
+	Gen(m MockGen)
 }
 
-type MockStr struct {
+type MockGen struct {
 	Basepath string
 	Comps    []Component
 }
 
-var mockStr *MockStr
+var mockGen *MockGen
 
 type Component struct {
 	PtrToComp interface{}
@@ -45,6 +45,7 @@ type typeInfo struct {
 	Pkg        string
 	Funcs      []*funcInfo
 	Fields     []*fieldInfo
+	deps       []reflect.Type
 }
 
 type fieldInfo struct {
@@ -58,8 +59,9 @@ var typeInfos struct {
 	Types    []typeInfo
 }
 
-var info *typeInfo
+//var info *typeInfo
 var infos []*typeInfo
+var infoMap map[reflect.Type]*typeInfo
 
 type funcInfo struct {
 	Name   string
@@ -68,13 +70,16 @@ type funcInfo struct {
 
 var funcMap template.FuncMap = make(map[string]interface{}, 0)
 
-func Gen(m *MockStr) {
+func (m *MockGen) Gen() {
 	infos = make([]*typeInfo, 0)
+	infoMap = make(map[reflect.Type]*typeInfo)
 	//output := bytes.Buffer{}
-	mockStr = m
+	mockGen = m
 	for _, c := range m.Comps {
 		pop(c)
-
+	}
+	for t, info := range infoMap {
+		gen(t, info)
 	}
 	//out := gen()
 	//output.Write(out.Bytes())
@@ -91,9 +96,10 @@ func pop(c Component) {
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	//basepath := mockStr.Basepath
-	info = &typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
+	//basepath := mockGen.Basepath
+	info := &typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
+	infoMap[tval] = info
 	fmt.Println(info)
 	infos = append(infos, info)
 	types := []reflect.Type{tval, tptr}
@@ -102,7 +108,7 @@ func pop(c Component) {
 		fmt.Println(t.Kind())
 		for i := 0; i < t.NumMethod(); i++ {
 			m := t.Method(i)
-			if info.fnExists(m.Name) {
+			if fnExists(info, m.Name) {
 				continue
 			}
 			fmt.Printf("%+v\n", m)
@@ -142,11 +148,11 @@ func pop(c Component) {
 	}
 	fmt.Printf("%+v\n", info)
 	fmt.Println()
-	gen()
+	//gen()
 
 }
 
-func gen() bytes.Buffer {
+func gen(t reflect.Type, info *typeInfo) bytes.Buffer {
 	funcMap["printOutParams"] = printOutParams
 	funcMap["receiver"] = receiver
 	funcMap["printFields"] = printFields
@@ -189,7 +195,7 @@ func exp() {
 const letter = `
 package {{.Pkg}}
 import (
-{{printImports}}
+{{. | printImports}}
 )
 
 type Mock{{.StructName}} struct{
@@ -246,7 +252,7 @@ func receiver(fn *funcInfo) string {
 	return "v "
 }
 
-func printImports() string {
+func printImports(info *typeInfo) string {
 	b := strings.Builder{}
 	for i := 0; i < len(info.Imports); i++ {
 		imp := info.Imports[i]
@@ -276,7 +282,17 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 		fields = append(fields, &fi)
 		fmt.Printf("%+v\n", f)
 	}
+	info.Fields = fields
+	depFields(info)
 	return fields
+}
+
+func depFields(info *typeInfo) {
+	for i := 0; i < len(info.Fields); i++ {
+		f := info.Fields[i]
+		info.deps = append(info.deps, f.Typ)
+		fmt.Println(f.Typ)
+	}
 }
 
 func printFields(fields []*fieldInfo) string {
@@ -287,7 +303,7 @@ func printFields(fields []*fieldInfo) string {
 	return b.String()
 }
 
-func (t *typeInfo) fnExists(name string) bool {
+func fnExists(t *typeInfo, name string) bool {
 	for _, fi := range t.Funcs {
 		if name == fi.Name {
 			return true
