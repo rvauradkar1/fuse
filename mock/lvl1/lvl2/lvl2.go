@@ -1,6 +1,10 @@
 package lvl2
 
-import "time"
+import (
+	"time"
+
+	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
+)
 
 type Il2 interface {
 	LM1(i int, s string) string
@@ -9,6 +13,7 @@ type Il2 interface {
 type L2 struct {
 	s    string
 	time time.Duration
+	Il3  lvl3.Il3
 }
 
 func (l L2) LM21(i int, f float32) string {

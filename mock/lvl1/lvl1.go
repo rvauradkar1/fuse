@@ -17,6 +17,7 @@ type L1 struct {
 	time  time.Duration
 	Time2 time.Duration
 	L2    lvl2.L2
+	Il2   lvl2.Il2
 	PL2   *lvl2.L2
 }
 
