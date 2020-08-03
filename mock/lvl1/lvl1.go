@@ -7,8 +7,8 @@ import (
 )
 
 type Il1 interface {
-	LM1(i int, s string) string
-	LM2(t time.Duration, f float32) string
+	LM1(i int, f float32) (string, *int)
+	LM2(t time.Duration, f float32) (string, time.Duration)
 }
 
 type L1 struct {

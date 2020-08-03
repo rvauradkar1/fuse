@@ -7,7 +7,7 @@ import (
 )
 
 type Il2 interface {
-	LM1(i int, s string) string
+	LM21(i int, f float32) string
 }
 
 type L2 struct {
@@ -17,6 +17,6 @@ type L2 struct {
 }
 
 func (l L2) LM21(i int, f float32) string {
-	s := l.Il3.LM3(1, "")
+	s := l.Il3.LM3(1, 1.2)
 	return s + "  return from LM1"
 }

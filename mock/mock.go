@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -29,10 +30,11 @@ type Component struct {
 }
 
 type param struct {
-	Input bool
-	Typ   reflect.Type
-	Name  string
-	Ptr   bool
+	Input  bool
+	Typ    reflect.Type
+	Name   string
+	Ptr    bool
+	InName string
 }
 
 type typeInfo struct {
@@ -46,6 +48,11 @@ type typeInfo struct {
 	Funcs      []*funcInfo
 	Fields     []*fieldInfo
 	deps       []reflect.Type
+}
+
+type genInfo struct {
+	enclosingType *typeInfo
+	enclosedTypes map[reflect.Type]*typeInfo
 }
 
 type fieldInfo struct {
@@ -81,14 +88,6 @@ func (m *MockGen) Gen() {
 	for t, info := range infoMap {
 		gen(t, info)
 	}
-	//out := gen()
-	//output.Write(out.Bytes())
-	//fn := info.Basepath + "/" + "Mocks_test.go"
-	//fn := "/Users/rvauradkar/go_code/src/github.com/rvauradkar1/fuse/mock" + "/" + "Mocks_test.go"
-	//s := output.String()
-	//fmt.Println(s)
-	//err := ioutil.WriteFile(fn, output.Bytes(), 0644)
-	//fmt.Println(err)
 }
 
 func pop(c Component) {
@@ -96,7 +95,6 @@ func pop(c Component) {
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	//basepath := mockGen.Basepath
 	info := &typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
 	infoMap[tval] = info
@@ -119,7 +117,6 @@ func pop(c Component) {
 			fmt.Println(t1.NumIn())
 			for j := 0; j < t1.NumIn(); j++ {
 				t2 := t1.In(j)
-				fmt.Println("pkgpath = " + t2.PkgPath())
 				if t2.PkgPath() != "" {
 					info.Imports = append(info.Imports, t2.PkgPath())
 				}
@@ -129,10 +126,8 @@ func pop(c Component) {
 				}
 				fn.Params = append(fn.Params, &param{Input: true, Typ: t2, Name: t2.Name(), Ptr: ptr})
 			}
-			fmt.Println(t1.NumOut())
 			for j := 0; j < t1.NumOut(); j++ {
 				t2 := t1.Out(j)
-				fmt.Println("pkgpath = " + t2.PkgPath())
 				if t2.PkgPath() != "" {
 					info.Imports = append(info.Imports, t2.PkgPath())
 				}
@@ -141,7 +136,6 @@ func pop(c Component) {
 					ptr = true
 				}
 				fn.Params = append(fn.Params, &param{Input: false, Typ: t2, Name: t2.Name(), Ptr: ptr})
-				fmt.Println()
 			}
 		}
 		info.Fields = fields(info, tptr)
@@ -152,8 +146,10 @@ func pop(c Component) {
 
 }
 
-func gen(t reflect.Type, info *typeInfo) bytes.Buffer {
+func gen(t reflect.Type, info *typeInfo) {
 	funcMap["printOutParams"] = printOutParams
+	funcMap["printInParams"] = printInParams
+	funcMap["printInNames"] = printInNames
 	funcMap["receiver"] = receiver
 	funcMap["printFields"] = printFields
 	funcMap["printImports"] = printImports
@@ -163,17 +159,49 @@ func gen(t reflect.Type, info *typeInfo) bytes.Buffer {
 		log.Fatalf("parsing: %s", err)
 	}
 
-	// Run the template to verify the output.
-	var b bytes.Buffer
-	err = tmpl.Execute(&b, info)
-	if err != nil {
-		log.Fatalf("execution: %s", err)
-	}
-	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
-	fmt.Println(err)
+	for t1, val := range infoMap {
+		ginfo := genInfo{enclosingType: info}
+		ginfo.enclosedTypes = make(map[reflect.Type]*typeInfo, 0)
+		if t1 != t {
+			continue
+		}
+		fmt.Println(t1)
+		types := make(map[reflect.Type]*typeInfo, 0)
+		for i := 0; i < len(val.Fields); i++ {
+			f := val.Fields[i]
+			temp := f.Typ
+			if f.Typ.Kind() == reflect.Ptr {
+				temp = f.Typ.Elem()
+			}
+			fmt.Println(temp)
+			types[temp] = info
+			popEnclosed(temp, ginfo)
+		}
+		var b bytes.Buffer
+		err = tmpl.Execute(&b, val)
+		if err != nil {
+			log.Fatalf("execution: %s", err)
+		}
+		err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
+		fmt.Println(err)
 
-	fmt.Println(err)
-	return b
+		fmt.Println(err)
+	}
+	//return b
+
+}
+
+func popEnclosed(temp reflect.Type, ginfo genInfo) {
+	if pi, ok := infoMap[temp]; ok {
+		ginfo.enclosedTypes[temp] = pi
+	}
+	if temp.Kind() == reflect.Interface {
+		for _, v := range infoMap {
+			if v.Typ.AssignableTo(temp) {
+				ginfo.enclosedTypes[temp] = v
+			}
+		}
+	}
 }
 
 func pkg(basepath string) string {
@@ -204,10 +232,10 @@ type Mock{{.StructName}} struct{
 {{$str:=.StructName}}
 {{range .Funcs}}
 {{$rec:= . | receiver}}
-type {{.Name}} func() {{.Params | printOutParams}}
+type {{.Name}} func({{.Params | printInParams}}) {{.Params | printOutParams}}
 var {{.Name}}Func {{.Name}}
-func ({{$rec}}Mock{{$str}}) {{.Name}}() {{.Params | printOutParams}} {
-	return {{.Name}}Func()
+func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | printOutParams}} {
+	return {{.Name}}Func({{.Params | printInNames}})
 }
 {{end}}
 
@@ -226,9 +254,6 @@ func printOutParams(params []*param) string {
 		}
 		//b.WriteString(p.Name)
 		//b.WriteString(" ")
-		if p.Ptr {
-			//b.WriteString("*")
-		}
 		b.WriteString(p.Typ.String())
 		if i != len(params)-1 {
 			b.WriteString(",")
@@ -236,6 +261,61 @@ func printOutParams(params []*param) string {
 	}
 	b.WriteString(")")
 	return b.String()
+}
+
+func printInParams(params []*param) string {
+	if len(params) == 0 {
+		return ""
+	}
+	b := strings.Builder{}
+	for i := 1; i < len(params); i++ {
+		p := params[i]
+		if !p.Input {
+			continue
+		}
+		if p.Ptr {
+			inName := "p" + string(p.Typ.Elem().String()[0]) + strconv.Itoa(i)
+			b.WriteString(inName)
+			p.InName = inName
+		} else {
+			inName := string(p.Typ.String()[0]) + strconv.Itoa(i)
+			b.WriteString(inName)
+			p.InName = inName
+		}
+		b.WriteString(" ")
+		b.WriteString(p.Typ.String())
+		if i != len(params)-1 {
+			b.WriteString(",")
+		}
+	}
+	s := b.String()
+	if len(s) > 0 {
+		l := len(s) - 1
+		s = string(s[0:l])
+	}
+	return s
+}
+
+func printInNames(params []*param) string {
+	if len(params) == 0 {
+		return ""
+	}
+	b := strings.Builder{}
+	for i := 1; i < len(params); i++ {
+		p := params[i]
+		if !p.Input {
+			continue
+		}
+		b.WriteString(" ")
+		b.WriteString(p.InName)
+		b.WriteString(",")
+	}
+	s := b.String()
+	if len(s) > 0 {
+		l := len(s) - 1
+		s = string(s[0:l])
+	}
+	return s
 }
 
 func receiver(fn *funcInfo) string {

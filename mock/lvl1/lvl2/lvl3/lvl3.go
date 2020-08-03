@@ -3,7 +3,7 @@ package lvl3
 import "time"
 
 type Il3 interface {
-	LM3(i int, s string) string
+	LM3(i int, f float32) string
 }
 
 type L3 struct {
