@@ -51,8 +51,8 @@ type typeInfo struct {
 }
 
 type genInfo struct {
-	enclosingType *typeInfo
-	enclosedTypes map[reflect.Type]*typeInfo
+	EnclosingType *typeInfo
+	EnclosedTypes map[reflect.Type]*typeInfo
 }
 
 type fieldInfo struct {
@@ -66,7 +66,6 @@ var typeInfos struct {
 	Types    []typeInfo
 }
 
-//var info *typeInfo
 var infos []*typeInfo
 var infoMap map[reflect.Type]*typeInfo
 
@@ -87,6 +86,7 @@ func (m *MockGen) Gen() {
 	}
 	for t, info := range infoMap {
 		gen(t, info)
+		break
 	}
 }
 
@@ -158,50 +158,66 @@ func gen(t reflect.Type, info *typeInfo) {
 	if err != nil {
 		log.Fatalf("parsing: %s", err)
 	}
+	fmt.Println("Type being genned ", info.Typ)
 
-	for t1, val := range infoMap {
-		ginfo := genInfo{enclosingType: info}
-		ginfo.enclosedTypes = make(map[reflect.Type]*typeInfo, 0)
-		if t1 != t {
-			continue
+	ginfo := genInfo{EnclosingType: info}
+	//for t1, val := range infoMap {
+	ginfo.EnclosedTypes = make(map[reflect.Type]*typeInfo, 0)
+	//fmt.Println("In loop t1 = ", t1)
+	//if t1 == t {
+	//	continue
+	//}
+	//fmt.Println(t1)
+	for i := 0; i < len(info.Fields); i++ {
+		f := info.Fields[i]
+		temp := f.Typ
+		if f.Typ.Kind() == reflect.Ptr {
+			temp = f.Typ.Elem()
 		}
-		fmt.Println(t1)
-		types := make(map[reflect.Type]*typeInfo, 0)
-		for i := 0; i < len(val.Fields); i++ {
-			f := val.Fields[i]
-			temp := f.Typ
-			if f.Typ.Kind() == reflect.Ptr {
-				temp = f.Typ.Elem()
-			}
-			fmt.Println(temp)
-			types[temp] = info
-			popEnclosed(temp, ginfo)
-		}
-		var b bytes.Buffer
-		err = tmpl.Execute(&b, val)
-		if err != nil {
-			log.Fatalf("execution: %s", err)
-		}
-		err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
-		fmt.Println(err)
-
-		fmt.Println(err)
+		fmt.Println(temp)
+		popEnclosed(temp, &ginfo)
 	}
+	//}
+	var b bytes.Buffer
+	for i, v := range ginfo.EnclosedTypes {
+		fmt.Println(i, " = ", v)
+	}
+	err = tmpl.Execute(&b, ginfo)
+	if err != nil {
+		log.Fatalf("execution: %s", err)
+	}
+	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
+	fmt.Println(err)
 	//return b
 
 }
 
-func popEnclosed(temp reflect.Type, ginfo genInfo) {
+func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	if pi, ok := infoMap[temp]; ok {
-		ginfo.enclosedTypes[temp] = pi
+		fmt.Println("containds ", temp, "  ", pi.Typ)
+		if shouldAdd(ginfo.EnclosedTypes, temp, pi) {
+			ginfo.EnclosedTypes[temp] = pi
+		}
 	}
 	if temp.Kind() == reflect.Interface {
 		for _, v := range infoMap {
 			if v.Typ.AssignableTo(temp) {
-				ginfo.enclosedTypes[temp] = v
+				fmt.Println("assignable = ", v.Typ, "  ", temp)
+				if shouldAdd(ginfo.EnclosedTypes, temp, v) {
+					ginfo.EnclosedTypes[temp] = v
+				}
 			}
 		}
 	}
+}
+
+func shouldAdd(types map[reflect.Type]*typeInfo, temp reflect.Type, pi *typeInfo) bool {
+	for _, v := range types {
+		if v.Typ == pi.Typ {
+			return false
+		}
+	}
+	return true
 }
 
 func pkg(basepath string) string {
@@ -221,14 +237,15 @@ func exp() {
 }
 
 const letter = `
-package {{.Pkg}}
+package {{.EnclosingType.Pkg}}
 import (
-{{. | printImports}}
+{{.EnclosedTypes | printImports}}
 )
-
+{{range .EnclosedTypes}}
 type Mock{{.StructName}} struct{
 	{{.Fields | printFields }}
 }
+
 {{$str:=.StructName}}
 {{range .Funcs}}
 {{$rec:= . | receiver}}
@@ -238,7 +255,7 @@ func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | p
 	return {{.Name}}Func({{.Params | printInNames}})
 }
 {{end}}
-
+{{end}}
 `
 
 func printOutParams(params []*param) string {
@@ -332,15 +349,17 @@ func receiver(fn *funcInfo) string {
 	return "v "
 }
 
-func printImports(info *typeInfo) string {
+func printImports(tmap map[reflect.Type]*typeInfo) string {
 	b := strings.Builder{}
-	for i := 0; i < len(info.Imports); i++ {
-		imp := info.Imports[i]
-		if !strings.Contains(b.String(), imp) && !strings.HasSuffix(imp, info.Pkg) {
-			b.WriteRune('"')
-			b.WriteString(imp)
-			b.WriteRune('"')
-			b.WriteRune('\n')
+	for _, info := range tmap {
+		for i := 0; i < len(info.Imports); i++ {
+			imp := info.Imports[i]
+			if !strings.Contains(b.String(), imp) && !strings.HasSuffix(imp, info.Pkg) {
+				b.WriteRune('"')
+				b.WriteString(imp)
+				b.WriteRune('"')
+				b.WriteRune('\n')
+			}
 		}
 	}
 	b1 := b.String()
