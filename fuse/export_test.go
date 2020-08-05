@@ -1,3 +1,3 @@
 package fuse
 
-var Eligible = eligible
+//var Eligible = eligible

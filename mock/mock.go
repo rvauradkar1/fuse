@@ -47,7 +47,7 @@ type typeInfo struct {
 	Pkg        string
 	Funcs      []*funcInfo
 	Fields     []*fieldInfo
-	deps       []reflect.Type
+	Deps       []reflect.Type
 }
 
 type genInfo struct {
@@ -67,7 +67,7 @@ var typeInfos struct {
 }
 
 var infos []*typeInfo
-var infoMap map[reflect.Type]*typeInfo
+var infoMap map[reflect.Type]*typeInfo = make(map[reflect.Type]*typeInfo, 0)
 
 type funcInfo struct {
 	Name   string
@@ -86,11 +86,11 @@ func (m *MockGen) Gen() {
 	}
 	for t, info := range infoMap {
 		gen(t, info)
-		break
+		//break
 	}
 }
 
-func pop(c Component) {
+func pop(c Component) *typeInfo {
 	tptr := reflect.TypeOf(c.PtrToComp)
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
@@ -142,7 +142,7 @@ func pop(c Component) {
 	}
 	fmt.Printf("%+v\n", info)
 	fmt.Println()
-	//gen()
+	return info
 
 }
 
@@ -161,13 +161,7 @@ func gen(t reflect.Type, info *typeInfo) {
 	fmt.Println("Type being genned ", info.Typ)
 
 	ginfo := genInfo{EnclosingType: info}
-	//for t1, val := range infoMap {
 	ginfo.EnclosedTypes = make(map[reflect.Type]*typeInfo, 0)
-	//fmt.Println("In loop t1 = ", t1)
-	//if t1 == t {
-	//	continue
-	//}
-	//fmt.Println(t1)
 	for i := 0; i < len(info.Fields); i++ {
 		f := info.Fields[i]
 		temp := f.Typ
@@ -177,7 +171,6 @@ func gen(t reflect.Type, info *typeInfo) {
 		fmt.Println(temp)
 		popEnclosed(temp, &ginfo)
 	}
-	//}
 	var b bytes.Buffer
 	for i, v := range ginfo.EnclosedTypes {
 		fmt.Println(i, " = ", v)
@@ -188,14 +181,12 @@ func gen(t reflect.Type, info *typeInfo) {
 	}
 	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
 	fmt.Println(err)
-	//return b
-
 }
 
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	if pi, ok := infoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
-		if shouldAdd(ginfo.EnclosedTypes, temp, pi) {
+		if shouldAdd(ginfo.EnclosedTypes, pi) {
 			ginfo.EnclosedTypes[temp] = pi
 		}
 	}
@@ -203,7 +194,7 @@ func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 		for _, v := range infoMap {
 			if v.Typ.AssignableTo(temp) {
 				fmt.Println("assignable = ", v.Typ, "  ", temp)
-				if shouldAdd(ginfo.EnclosedTypes, temp, v) {
+				if shouldAdd(ginfo.EnclosedTypes, v) {
 					ginfo.EnclosedTypes[temp] = v
 				}
 			}
@@ -211,7 +202,7 @@ func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	}
 }
 
-func shouldAdd(types map[reflect.Type]*typeInfo, temp reflect.Type, pi *typeInfo) bool {
+func shouldAdd(types map[reflect.Type]*typeInfo, pi *typeInfo) bool {
 	for _, v := range types {
 		if v.Typ == pi.Typ {
 			return false
@@ -269,8 +260,6 @@ func printOutParams(params []*param) string {
 		if p.Input {
 			continue
 		}
-		//b.WriteString(p.Name)
-		//b.WriteString(" ")
 		b.WriteString(p.Typ.String())
 		if i != len(params)-1 {
 			b.WriteString(",")
@@ -389,7 +378,7 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 func depFields(info *typeInfo) {
 	for i := 0; i < len(info.Fields); i++ {
 		f := info.Fields[i]
-		info.deps = append(info.deps, f.Typ)
+		info.Deps = append(info.Deps, f.Typ)
 		fmt.Println(f.Typ)
 	}
 }
