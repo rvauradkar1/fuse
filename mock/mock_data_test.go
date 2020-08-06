@@ -1,4 +1,4 @@
-package main
+package mock
 
 import (
 	"fmt"
@@ -46,6 +46,7 @@ func M3() {
 type Il1 interface {
 	LM1(i int, f float32) (string, *int)
 	LM2(t time.Duration, f float32) (string, time.Duration)
+	LM3(f *float32) (string, time.Duration)
 }
 
 type L1 struct {
@@ -64,6 +65,10 @@ func (l L1) LM1(i int, f float32) (string, *int) {
 }
 
 func (l *L1) LM2(t time.Duration, f float32) (string, time.Duration) {
+	return "return from LM2", time.Millisecond
+}
+
+func (l *L1) LM3(f *float32) (string, time.Duration) {
 	return "return from LM2", time.Millisecond
 }
 

@@ -1,4 +1,4 @@
-package main
+package mock
 
 import (
 	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"

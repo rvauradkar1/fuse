@@ -1,11 +1,10 @@
-package main
+package mock
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -86,8 +85,8 @@ func (m *MockGen) Gen() {
 	}
 	for t, info := range infoMap {
 		gen(t, info)
-		//break
 	}
+
 }
 
 func pop(c Component) *typeInfo {
@@ -162,8 +161,8 @@ func gen(t reflect.Type, info *typeInfo) {
 
 	ginfo := genInfo{EnclosingType: info}
 	ginfo.EnclosedTypes = make(map[reflect.Type]*typeInfo, 0)
-	for i := 0; i < len(info.Fields); i++ {
-		f := info.Fields[i]
+	for _, f := range info.Fields {
+		//f := info.Fields[i]
 		temp := f.Typ
 		if f.Typ.Kind() == reflect.Ptr {
 			temp = f.Typ.Elem()
@@ -219,14 +218,6 @@ func pkg(basepath string) string {
 	return ""
 }
 
-func exp() {
-	ex, err := filepath.Abs("./")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(ex)
-}
-
 const letter = `
 package {{.EnclosingType.Pkg}}
 import (
@@ -255,8 +246,9 @@ func printOutParams(params []*param) string {
 	}
 	b := strings.Builder{}
 	b.WriteString("(")
-	for i := 0; i < len(params); i++ {
-		p := params[i]
+	//for i := 0; i < len(params); i++ {
+	for i, p := range params {
+		//p := params[i]
 		if p.Input {
 			continue
 		}

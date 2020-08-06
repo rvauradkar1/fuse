@@ -1,4 +1,4 @@
-package main
+package mock
 
 var PrintFields = printFields
 var Fields = fields
