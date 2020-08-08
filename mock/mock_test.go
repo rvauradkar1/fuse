@@ -151,3 +151,25 @@ func Test_gen(t *testing.T) {
 	fmt.Println(t1)
 
 }
+
+func Test_a(t *testing.T) {
+	sl := make([]*string, 0)
+	s := "test"
+	sl = append(sl, &s)
+	fmt.Println(sl)
+	f1(sl)
+	fmt.Println(sl[0])
+
+}
+
+func f1(sl []*string) {
+	s1 := "test111"
+	*sl[0] = "test111"
+	fmt.Println(sl[0])
+	s := sl[0]
+	s1 = "test222"
+	s = &s1
+	fmt.Println(s)
+	fmt.Println(sl[0])
+
+}

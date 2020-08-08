@@ -44,7 +44,9 @@ func (b *builder) init() {
 
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
+		fmt.Printf("Starting to register %s\n", entries[i].Name)
 		b.register2(entries[i])
+		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
 	for _, c := range b.Registry {
 		for i := 0; i < c.valType.NumField(); i++ {

@@ -1,10 +1,11 @@
 package mock
 
 import (
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
+	"fmt"
 
 	"github.com/rvauradkar1/fuse/mock/lvl1"
 	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
+	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
 )
 
 func main() {
@@ -17,4 +18,16 @@ func main() {
 	m.Comps = comps
 	m.Gen()
 
+	sl := make([]string, 0)
+	s := "test"
+	sl = append(sl, s)
+	fmt.Println(sl)
+	f(sl)
+	fmt.Println(sl)
+
+}
+
+func f(sl []string) {
+	sl[0] = "test111"
+	fmt.Println(sl)
 }

@@ -39,6 +39,7 @@ type param struct {
 type typeInfo struct {
 	Imports    []string
 	Typ        reflect.Type
+	PTyp       reflect.Type
 	Basepath   string
 	StructName string
 	PkgPath    string
@@ -84,7 +85,11 @@ func (m *MockGen) Gen() {
 		pop(c)
 	}
 	for t, info := range infoMap {
-		gen(t, info)
+		if strings.Contains(t.String(), "Contro") {
+			gen(t, info)
+			break
+		}
+
 	}
 
 }
@@ -94,11 +99,13 @@ func pop(c Component) *typeInfo {
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	info := &typeInfo{Typ: tval, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
+	info := &typeInfo{Typ: tval, PTyp: tptr, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
 	infoMap[tval] = info
 	fmt.Println(info)
 	infos = append(infos, info)
+	fmt.Println(tptr)
+	fmt.Println(tval)
 	types := []reflect.Type{tval, tptr}
 	for _, t := range types {
 		fmt.Println(t.NumMethod())
@@ -168,6 +175,7 @@ func gen(t reflect.Type, info *typeInfo) {
 			temp = f.Typ.Elem()
 		}
 		fmt.Println(temp)
+		// populate
 		popEnclosed(temp, &ginfo)
 	}
 	var b bytes.Buffer
@@ -178,6 +186,8 @@ func gen(t reflect.Type, info *typeInfo) {
 	if err != nil {
 		log.Fatalf("execution: %s", err)
 	}
+	s := b.String()
+	fmt.Println(s)
 	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
 	fmt.Println(err)
 }
@@ -186,12 +196,14 @@ func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	if pi, ok := infoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
 		if shouldAdd(ginfo.EnclosedTypes, pi) {
+			fmt.Println("assignable = ", pi, "  ", temp)
 			ginfo.EnclosedTypes[temp] = pi
 		}
 	}
 	if temp.Kind() == reflect.Interface {
 		for _, v := range infoMap {
-			if v.Typ.AssignableTo(temp) {
+			fmt.Println("containds ", temp, "  ", v.Typ)
+			if v.PTyp.AssignableTo(temp) {
 				fmt.Println("assignable = ", v.Typ, "  ", temp)
 				if shouldAdd(ginfo.EnclosedTypes, v) {
 					ginfo.EnclosedTypes[temp] = v
@@ -354,9 +366,16 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 	for i := 0; i < el.NumField(); i++ {
 		f := el.Field(i)
 		t2 := f.Type
+		fmt.Println(t2)
 		fmt.Println("pkgpath = " + t2.PkgPath())
 		if t2.PkgPath() != "" {
 			info.Imports = append(info.Imports, t2.PkgPath())
+		}
+		if t2.Kind() == reflect.Ptr {
+			t21 := t2.Elem()
+			fmt.Println(t21.PkgPath())
+			info.Imports = append(info.Imports, t21.PkgPath())
+			fmt.Println()
 		}
 		fi := fieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String()}
 		fields = append(fields, &fi)
