@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 )
 
 type Fuse interface {
 	Register(entries []Entry) []error
 	Find(name string) interface{}
+	Mock(name string, c interface{})
 }
+
+var mocks = make(map[string]interface{})
 
 func New() Fuse {
 	b := builder{}
@@ -57,15 +61,6 @@ func (b *builder) Register(entries []Entry) []error {
 	return b.Errors
 }
 
-func eligible(sf reflect.StructField) bool {
-	if sf.Type.Kind() == reflect.Interface ||
-		(sf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == reflect.Struct) {
-		_, ok := sf.Tag.Lookup("_fuse")
-		return ok
-	}
-	return false
-}
-
 func (b *builder) Find(name string) interface{} {
 	c := b.Registry[name]
 	if c.Stateless {
@@ -73,6 +68,20 @@ func (b *builder) Find(name string) interface{} {
 	} else {
 		return b.create(c)
 	}
+}
+
+func (b *builder) Mock(name string, c interface{}) {
+	_, _, fn, _ := runtime.Caller(1)
+	fmt.Println(fn)
+}
+
+func eligible(sf reflect.StructField) bool {
+	if sf.Type.Kind() == reflect.Interface ||
+		(sf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == reflect.Struct) {
+		_, ok := sf.Tag.Lookup("_fuse")
+		return ok
+	}
+	return false
 }
 
 func (b *builder) wire2(c *component, sf reflect.StructField) {

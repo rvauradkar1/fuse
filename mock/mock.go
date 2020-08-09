@@ -85,10 +85,10 @@ func (m *MockGen) Gen() {
 		pop(c)
 	}
 	for t, info := range infoMap {
-		if strings.Contains(t.String(), "Contro") {
-			gen(t, info)
-			break
-		}
+		//if strings.Contains(t.String(), "Contro") {
+		gen(t, info)
+		//	break
+		//}
 
 	}
 
@@ -168,6 +168,8 @@ func gen(t reflect.Type, info *typeInfo) {
 
 	ginfo := genInfo{EnclosingType: info}
 	ginfo.EnclosedTypes = make(map[reflect.Type]*typeInfo, 0)
+	// Added thissssssssssssssssss
+	ginfo.EnclosedTypes[t] = info
 	for _, f := range info.Fields {
 		//f := info.Fields[i]
 		temp := f.Typ
@@ -176,6 +178,7 @@ func gen(t reflect.Type, info *typeInfo) {
 		}
 		fmt.Println(temp)
 		// populate
+
 		popEnclosed(temp, &ginfo)
 	}
 	var b bytes.Buffer
