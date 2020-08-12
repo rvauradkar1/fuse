@@ -196,6 +196,7 @@ func gen(t reflect.Type, info *typeInfo) {
 }
 
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
+	fmt.Println(temp)
 	if pi, ok := infoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
 		if shouldAdd(ginfo.EnclosedTypes, pi) {

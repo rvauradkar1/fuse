@@ -189,7 +189,14 @@ func Test_create(t *testing.T) {
 	c2.M1()
 }
 
-func Test_caller(t *testing.T) {
+func Test_caller_panics(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		} else {
+			t.Errorf("should have pacicked")
+		}
+	}()
 	fuse := New()
-	fuse.Mock("test")
+	fuse.RegisterMock("test", nil)
 }
