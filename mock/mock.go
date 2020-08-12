@@ -20,8 +20,6 @@ type MockGen struct {
 	Comps    []Component
 }
 
-var mockGen *MockGen
-
 type Component struct {
 	PtrToComp interface{}
 	//GenInterface bool
@@ -61,13 +59,7 @@ type fieldInfo struct {
 	TName string
 }
 
-var typeInfos struct {
-	Basepath string
-	Types    []typeInfo
-}
-
-var infos []*typeInfo
-var infoMap map[reflect.Type]*typeInfo = make(map[reflect.Type]*typeInfo, 0)
+var mockInfoMap = make(map[reflect.Type]*typeInfo, 0)
 
 type funcInfo struct {
 	Name   string
@@ -77,14 +69,11 @@ type funcInfo struct {
 var funcMap template.FuncMap = make(map[string]interface{}, 0)
 
 func (m *MockGen) Gen() {
-	infos = make([]*typeInfo, 0)
-	infoMap = make(map[reflect.Type]*typeInfo)
-	//output := bytes.Buffer{}
-	mockGen = m
+	mockInfoMap = make(map[reflect.Type]*typeInfo)
 	for _, c := range m.Comps {
 		pop(c)
 	}
-	for t, info := range infoMap {
+	for t, info := range mockInfoMap {
 		//if strings.Contains(t.String(), "Contro") {
 		gen(t, info)
 		//	break
@@ -101,9 +90,8 @@ func pop(c Component) *typeInfo {
 	tval := reflect.TypeOf(v1)
 	info := &typeInfo{Typ: tval, PTyp: tptr, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
-	infoMap[tval] = info
+	mockInfoMap[tval] = info
 	fmt.Println(info)
-	infos = append(infos, info)
 	fmt.Println(tptr)
 	fmt.Println(tval)
 	types := []reflect.Type{tval, tptr}
@@ -177,8 +165,6 @@ func gen(t reflect.Type, info *typeInfo) {
 			temp = f.Typ.Elem()
 		}
 		fmt.Println(temp)
-		// populate
-
 		popEnclosed(temp, &ginfo)
 	}
 	var b bytes.Buffer
@@ -197,7 +183,7 @@ func gen(t reflect.Type, info *typeInfo) {
 
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	fmt.Println(temp)
-	if pi, ok := infoMap[temp]; ok {
+	if pi, ok := mockInfoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
 		if shouldAdd(ginfo.EnclosedTypes, pi) {
 			fmt.Println("assignable = ", pi, "  ", temp)
@@ -205,7 +191,7 @@ func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 		}
 	}
 	if temp.Kind() == reflect.Interface {
-		for _, v := range infoMap {
+		for _, v := range mockInfoMap {
 			fmt.Println("containds ", temp, "  ", v.Typ)
 			if v.PTyp.AssignableTo(temp) {
 				fmt.Println("assignable = ", v.Typ, "  ", temp)
@@ -305,7 +291,7 @@ func printInParams(params []*param) string {
 	s := b.String()
 	if len(s) > 0 {
 		l := len(s) - 1
-		s = string(s[0:l])
+		s = s[0:l]
 	}
 	return s
 }
@@ -327,7 +313,7 @@ func printInNames(params []*param) string {
 	s := b.String()
 	if len(s) > 0 {
 		l := len(s) - 1
-		s = string(s[0:l])
+		s = s[0:l]
 	}
 	return s
 }
