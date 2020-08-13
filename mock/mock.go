@@ -260,24 +260,26 @@ func pkg(basepath string) string {
 }
 
 const letter = `
+{{$str:=""}}
 package {{.EnclosingType.Pkg}}
 import (
 {{.EnclosedTypes | printImports}}
 )
 {{range .EnclosedTypes}}
+// Begin of mock for {{.StructName}} and its methods
 type Mock{{.StructName}} struct{
 	{{.Fields | printFields }}
 }
-
 {{$str:=.StructName}}
 {{range .Funcs}}
 {{$rec:= . | receiver}}
 type {{.Name}} func({{.Params | printInParams}}) {{.Params | printOutParams}}
-var {{.Name}}Func {{.Name}}
+var Mock{{.Name}} {{.Name}}
 func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | printOutParams}} {
-	return {{.Name}}Func({{.Params | printInNames}})
+	return Mock{{.Name}}({{.Params | printInNames}})
 }
 {{end}}
+// End of mock for {{$str}} and its methods
 {{end}}
 `
 
