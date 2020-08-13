@@ -162,12 +162,21 @@ func gen(t reflect.Type, info *typeInfo) {
 	// Added thissssssssssssssssss
 	ginfo.EnclosedTypes[t] = info
 	for _, f := range info.Fields {
+		if _, ok := f.StructField.Tag.Lookup("_fuse"); !ok {
+			continue
+		}
 		temp := f.Typ
 		if f.Typ.Kind() == reflect.Ptr {
 			temp = f.Typ.Elem()
 		}
 		fmt.Println(temp)
 		popEnclosed(temp, &ginfo)
+	}
+	fmt.Println("Fooooooorrrr = ", info.Name)
+	i := 0
+	for _, tt := range ginfo.EnclosedTypes {
+		i = i + 1
+		fmt.Printf("Befor  = %d, %s\n", i, tt.Name)
 	}
 	for _, f := range info.Fields {
 		if "DEPS_" != f.Name {
@@ -176,12 +185,17 @@ func gen(t reflect.Type, info *typeInfo) {
 		deps := findDeps(f)
 		for _, dep := range deps {
 			for t, v := range mockInfoMap {
-				fmt.Println(v)
+				//fmt.Printf("Info = %+v\n", v)
 				if dep == v.Name {
 					ginfo.EnclosedTypes[t] = v
 				}
 			}
 		}
+	}
+	i = 0
+	for _, tt := range ginfo.EnclosedTypes {
+		i = i + 1
+		fmt.Printf("After  = %d, %s\n", i, tt.Name)
 	}
 	var b bytes.Buffer
 	for i, v := range ginfo.EnclosedTypes {
@@ -380,6 +394,9 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 	el := t.Elem()
 	for i := 0; i < el.NumField(); i++ {
 		f := el.Field(i)
+		if f.Name == "DEP_" {
+			continue
+		}
 		t2 := f.Type
 		fmt.Println(t2)
 		fmt.Println("pkgpath = " + t2.PkgPath())
