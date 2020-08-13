@@ -24,6 +24,7 @@ type Component struct {
 	PtrToComp interface{}
 	//GenInterface bool
 	Basepath string
+	Name     string
 }
 
 type param struct {
@@ -38,6 +39,7 @@ type typeInfo struct {
 	Imports    []string
 	Typ        reflect.Type
 	PTyp       reflect.Type
+	Name       string
 	Basepath   string
 	StructName string
 	PkgPath    string
@@ -54,9 +56,10 @@ type genInfo struct {
 }
 
 type fieldInfo struct {
-	Name  string
-	Typ   reflect.Type
-	TName string
+	Name        string
+	Typ         reflect.Type
+	TName       string
+	StructField reflect.StructField
 }
 
 var mockInfoMap = make(map[reflect.Type]*typeInfo, 0)
@@ -88,7 +91,7 @@ func pop(c Component) *typeInfo {
 	v := reflect.ValueOf(c.PtrToComp)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
-	info := &typeInfo{Typ: tval, PTyp: tptr, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
+	info := &typeInfo{Typ: tval, PTyp: tptr, Name: c.Name, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
 	mockInfoMap[tval] = info
 	fmt.Println(info)
@@ -159,13 +162,26 @@ func gen(t reflect.Type, info *typeInfo) {
 	// Added thissssssssssssssssss
 	ginfo.EnclosedTypes[t] = info
 	for _, f := range info.Fields {
-		//f := info.Fields[i]
 		temp := f.Typ
 		if f.Typ.Kind() == reflect.Ptr {
 			temp = f.Typ.Elem()
 		}
 		fmt.Println(temp)
 		popEnclosed(temp, &ginfo)
+	}
+	for _, f := range info.Fields {
+		if "DEPS_" != f.Name {
+			continue
+		}
+		deps := findDeps(f)
+		for _, dep := range deps {
+			for t, v := range mockInfoMap {
+				fmt.Println(v)
+				if dep == v.Name {
+					ginfo.EnclosedTypes[t] = v
+				}
+			}
+		}
 	}
 	var b bytes.Buffer
 	for i, v := range ginfo.EnclosedTypes {
@@ -179,6 +195,15 @@ func gen(t reflect.Type, info *typeInfo) {
 	fmt.Println(s)
 	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
 	fmt.Println(err)
+}
+
+func findDeps(info *fieldInfo) []string {
+	deps := make([]string, 0)
+	if tag, ok := info.StructField.Tag.Lookup("_deps"); ok {
+		tag = strings.Replace(tag, " ", "", -1)
+		deps = strings.Split(tag, ",")
+	}
+	return deps
 }
 
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
@@ -367,7 +392,7 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 			info.Imports = append(info.Imports, t21.PkgPath())
 			fmt.Println()
 		}
-		fi := fieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String()}
+		fi := fieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String(), StructField: f}
 		fields = append(fields, &fi)
 		fmt.Printf("%+v\n", f)
 	}

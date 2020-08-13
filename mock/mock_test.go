@@ -18,8 +18,8 @@ func Test_pop(t *testing.T) {
 		t.Errorf("length of fields should have been %d, but was %d", 7, len(info.Fields))
 	}
 	fmt.Println(len(info.Imports))
-	if len(info.Imports) != 12 {
-		t.Errorf("length of imports should have been %d, but was %d", 11, len(info.Imports))
+	if len(info.Imports) != 14 {
+		t.Errorf("length of imports should have been %d, but was %d", 14, len(info.Imports))
 	}
 	fmt.Println(len(info.Funcs))
 	if len(info.Funcs) != 3 {
@@ -152,24 +152,31 @@ func Test_gen(t *testing.T) {
 
 }
 
-func Test_a(t *testing.T) {
-	sl := make([]*string, 0)
-	s := "test"
-	sl = append(sl, &s)
-	fmt.Println(sl)
-	f1(sl)
-	fmt.Println(sl[0])
+func Test_findDeps(t *testing.T) {
+	fi := fieldInfo{StructField: reflect.StructField{Tag: "_deps"}}
+	deps := findDeps(&fi)
+	if len(deps) > 0 {
+		t.Errorf("length of deps should be 0")
+	}
 
-}
+	fi = fieldInfo{StructField: reflect.StructField{Tag: `_deps:"comp1"`}}
+	deps = findDeps(&fi)
+	if len(deps) != 1 {
+		t.Errorf("length of deps should be 1")
+	}
+	if deps[0] != "comp1" {
+		t.Errorf("comp should have been comp1 but was %s", deps[0])
+	}
 
-func f1(sl []*string) {
-	s1 := "test111"
-	*sl[0] = "test111"
-	fmt.Println(sl[0])
-	s := sl[0]
-	s1 = "test222"
-	s = &s1
-	fmt.Println(s)
-	fmt.Println(sl[0])
-
+	fi = fieldInfo{StructField: reflect.StructField{Tag: `_deps:"comp1,comp2"`}}
+	deps = findDeps(&fi)
+	if len(deps) != 2 {
+		t.Errorf("length of deps should be 1")
+	}
+	if deps[0] != "comp1" {
+		t.Errorf("comp should have been comp1 but was %s", deps[0])
+	}
+	if deps[1] != "comp2" {
+		t.Errorf("comp should have been comp2 but was %s", deps[0])
+	}
 }
