@@ -12,7 +12,7 @@ import (
 )
 
 func Test_pop(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	fmt.Println("+v", info)
 	if len(info.Fields) != 7 {
 		t.Errorf("length of fields should have been %d, but was %d", 7, len(info.Fields))
@@ -38,7 +38,7 @@ func Test_pop(t *testing.T) {
 }
 
 func Test_shouldAdd(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	types := make(map[reflect.Type]*typeInfo, 0)
 	types[reflect.TypeOf(L1{})] = info
 	b := ShouldAdd(types, info)
@@ -46,8 +46,8 @@ func Test_shouldAdd(t *testing.T) {
 		t.Errorf("should NOT have been added for %T, same types cannot be added", info.Typ)
 	}
 
-	info = Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
-	info2 := Pop(Component{PtrToComp: &L2{}, Basepath: "./lvl1"})
+	info = Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
+	info2 := Pop(Component{Instance: &L2{}, Basepath: "./lvl1"})
 	types = make(map[reflect.Type]*typeInfo, 0)
 	types[reflect.TypeOf(L2{})] = info
 	b = ShouldAdd(types, info2)
@@ -68,7 +68,7 @@ func Test_pkg(t *testing.T) {
 }
 
 func Test_printOutParams(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	s := printOutParams(info.Funcs[0].Params)
 	if s != "(string,*int)" {
 		t.Errorf("should have been '%s', but was '%s'", "(string,*int)", s)
@@ -76,7 +76,7 @@ func Test_printOutParams(t *testing.T) {
 }
 
 func Test_printInParams(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	s := printInParams(info.Funcs[0].Params)
 	if s != "i1 int,f2 float32" {
 		t.Errorf("should have been '%s', but was '%s'", "i1 int,f2 float32", s)
@@ -88,7 +88,7 @@ func Test_printInParams(t *testing.T) {
 }
 
 func Test_printInNames(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	info.Funcs[0].Params[1].InName = "p1"
 	info.Funcs[0].Params[1].Input = true
 	info.Funcs[0].Params[2].InName = "p2"
@@ -102,7 +102,7 @@ func Test_printInNames(t *testing.T) {
 }
 
 func Test_printImports(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	types := make(map[reflect.Type]*typeInfo)
 	types[reflect.TypeOf(L1{})] = info
 	s := printImports(types)
@@ -118,7 +118,7 @@ func Test_receiver(t *testing.T) {
 		t.Errorf("should have errored out with message %s, but was instead %s", "error", s)
 	}
 
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	s = receiver(info.Funcs[0])
 	if s != "v " {
 		t.Errorf("should have been '%s', but was '%s'", "v ", s)
@@ -130,7 +130,7 @@ func Test_receiver(t *testing.T) {
 }
 
 func Test_printFields(t *testing.T) {
-	info := Pop(Component{PtrToComp: &L1{}, Basepath: "./lvl1"})
+	info := Pop(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	s := printFields(info.Fields)
 	fmt.Println(s)
 	if !strings.Contains(s, "S1 string\ntime time.Duration\nTime2 time.Duration") {
@@ -141,9 +141,9 @@ func Test_printFields(t *testing.T) {
 func Test_gen(t *testing.T) {
 	m := MockGen{}
 	comps := make([]Component, 0)
-	comps = append(comps, Component{PtrToComp: &lvl1.L1{}, Basepath: "./lvl1"})
-	comps = append(comps, Component{PtrToComp: &lvl2.L2{}, Basepath: "./lvl1/lvl2"})
-	comps = append(comps, Component{PtrToComp: &lvl3.L3{}, Basepath: "./lvl1/lvl2/lvl3"})
+	comps = append(comps, Component{Instance: &lvl1.L1{}, Basepath: "./lvl1"})
+	comps = append(comps, Component{Instance: &lvl2.L2{}, Basepath: "./lvl1/lvl2"})
+	comps = append(comps, Component{Instance: &lvl3.L3{}, Basepath: "./lvl1/lvl2/lvl3"})
 	m.Comps = comps
 	m.Gen()
 

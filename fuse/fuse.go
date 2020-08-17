@@ -134,7 +134,6 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 		return
 	}
 	fmt.Println("Assignable")
-	//of := reflect.ValueOf(comp.ValOfComp)
 	of := reflect.ValueOf(comp.PtrToComp)
 	f.Set(of)
 }

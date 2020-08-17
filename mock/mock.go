@@ -16,15 +16,28 @@ type Mock interface {
 }
 
 type MockGen struct {
-	Basepath string
-	Comps    []Component
+	Comps []Component
+}
+
+// Entry is used by clients to configure components
+type Entry struct {
+	// Component key, required
+	Name string
+	// Stateless of stateful
+	Stateless bool
+	// Instance is pointer to component
+	Instance interface{}
 }
 
 type Component struct {
-	PtrToComp interface{}
-	//GenInterface bool
+	// Component key, required
+	Name string
+	// Instance is pointer to component
+	Instance interface{}
+	// Stateless of stateful
+	Stateless bool
+	//Base path to generate mocks
 	Basepath string
-	Name     string
 }
 
 type param struct {
@@ -87,8 +100,8 @@ func (m *MockGen) Gen() {
 }
 
 func pop(c Component) *typeInfo {
-	tptr := reflect.TypeOf(c.PtrToComp)
-	v := reflect.ValueOf(c.PtrToComp)
+	tptr := reflect.TypeOf(c.Instance)
+	v := reflect.ValueOf(c.Instance)
 	v1 := v.Elem().Interface()
 	tval := reflect.TypeOf(v1)
 	info := &typeInfo{Typ: tval, PTyp: tptr, Name: c.Name, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
