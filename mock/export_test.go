@@ -1,10 +1,10 @@
 package mock
 
-var PrintFields = printFields
-var Fields = fields
-var PrintImports = printImports
-var Receiver = receiver
-var PrintOutParams = printOutParams
-var Pkg = pkg
-var Pop = pop
-var ShouldAdd = shouldAdd
+//var PrintFields = printFields
+//iivar Fields = populateFields
+//var PrintImports = printImports
+//var Receiver = receiver
+//var PrintOutParams = printOutParams
+//var Pkg = pkg
+//var Pop = populateInfo
+//var ShouldAdd = shouldAdd

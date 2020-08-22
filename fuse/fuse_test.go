@@ -18,44 +18,49 @@ func TestMain(m *testing.M) {
 func Test_Register(t *testing.T) {
 	fmt.Println("Testing Test_Register")
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController{s: "first"}}
+	e1 := Entry{Name: "OrdCtrl", State: true, Instance: &OrderController{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{T: "second"}}
+	e2 := Entry{Name: "OrdSvc", State: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
 	find := fuse.Find
 	errors := fuse.Register(cs)
 	if len(errors) > 0 {
-		t.Errorf("there should be no errors")
+		t.Errorf("there should be no errorsin Register")
+	}
+	errors = fuse.Wire()
+	if len(errors) > 0 {
+		t.Errorf("there should be no errors in Wire")
 	}
 	comp := find("OrdCtrl")
 	s, ok := comp.(*OrderController)
-	fmt.Println(s.OrdPtr.findOrder())
 	if !ok {
 		t.Errorf("should have recorded OrdCtrl")
 	}
 	if s.OrdSvc == nil {
 		t.Errorf("should have wired in OrdSvc")
+		return
 	}
-	fmt.Println(s.OrdSvc.findOrder())
-	fmt.Println(s.OrdSvc2.findOrder())
 	if s.OrdPtr == nil {
-		t.Errorf("should have wired in OrdSvc")
+		t.Errorf("should have wired in OrdPtr")
 	}
 	fmt.Println(s.OrdPtr.findOrder())
+	fmt.Println(s.OrdSvc.findOrder())
+	fmt.Println(s.OrdSvc2.findOrder())
 }
 
 func Test_no_comp_found(t *testing.T) {
 	fmt.Println("Testing Test_is_ok")
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
+	e1 := Entry{Name: "OrdCtrl", State: true, Instance: &OrderController1{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{T: "second"}}
+	e2 := Entry{Name: "OrdSvc1", State: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
 	errors := fuse.Register(cs)
+	errors = fuse.Wire()
 	fmt.Println(len(errors))
 	if len(errors) != 3 {
 		t.Error("There should have been 2 errors for comp not found")
@@ -66,13 +71,14 @@ func Test_no_comp_found(t *testing.T) {
 func Test_no_addr_set(t *testing.T) {
 	fmt.Println("Testing Test_is_ok")
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController1{s: "first"}}
+	e1 := Entry{Name: "OrdCtrl", State: true, Instance: &OrderController1{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc", Stateless: true, Instance: &OrderService{T: "second"}}
+	e2 := Entry{Name: "OrdSvc", State: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
 	errors := fuse.Register(cs)
+	errors = fuse.Wire()
 	if len(errors) != 1 {
 		t.Error("There should have been 2 errors for comp not found")
 	}
@@ -82,13 +88,14 @@ func Test_no_addr_set(t *testing.T) {
 func Test_no_annot_assign(t *testing.T) {
 	fmt.Println("Testing Test_is_ok")
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "OrdCtrl", Stateless: true, Instance: &OrderController2{s: "first"}}
+	e1 := Entry{Name: "OrdCtrl", State: true, Instance: &OrderController2{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "OrdSvc1", Stateless: true, Instance: &OrderService{T: "second"}}
+	e2 := Entry{Name: "OrdSvc1", State: true, Instance: &OrderService{T: "second"}}
 	cs = append(cs, e2)
 
 	fuse := New()
 	errors := fuse.Register(cs)
+	errors = fuse.Wire()
 	if len(errors) != 2 {
 		t.Error("There should have been 2 errors for comp not assignable")
 	}
@@ -167,11 +174,11 @@ func Test_eligible(t *testing.T) {
 func Test_create(t *testing.T) {
 	fmt.Println("Testing Test_create")
 	cs := make([]Entry, 0)
-	e1 := Entry{Name: "svc1", Stateless: false, Instance: &Svc1{s: "first"}}
+	e1 := Entry{Name: "svc1", State: false, Instance: &Svc1{s: "first"}}
 	cs = append(cs, e1)
-	e2 := Entry{Name: "svc2", Stateless: true, Instance: &Svc2{s: "second"}}
+	e2 := Entry{Name: "svc2", State: true, Instance: &Svc2{s: "second"}}
 	cs = append(cs, e2)
-	e3 := Entry{Name: "svc3", Stateless: true, Instance: &Svc3{s: "third"}}
+	e3 := Entry{Name: "svc3", State: true, Instance: &Svc3{s: "third"}}
 	cs = append(cs, e3)
 
 	fuse := New()

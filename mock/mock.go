@@ -6,10 +6,21 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
 )
+
+type Mock1 interface {
+	// Register a slice of components
+	Register(entries []Entry) []error
+	Wire() []error
+	// Find is needed primarily for stateful components.
+	Find(name string) interface{}
+	// Mock is used ONLY during testing for
+	RegisterMock(name string, c interface{})
+}
 
 type Mock interface {
 	Gen(m MockGen)
@@ -87,7 +98,7 @@ var funcMap template.FuncMap = make(map[string]interface{}, 0)
 func (m *MockGen) Gen() {
 	mockInfoMap = make(map[reflect.Type]*typeInfo)
 	for _, c := range m.Comps {
-		pop(c)
+		populateInfo(c)
 	}
 	for t, info := range mockInfoMap {
 		//if strings.Contains(t.String(), "Contro") {
@@ -96,10 +107,41 @@ func (m *MockGen) Gen() {
 		//}
 
 	}
-
 }
 
-func pop(c Component) *typeInfo {
+type builder struct {
+	Registry map[string]component
+	Errors   []error
+}
+
+type component struct {
+	Name      string
+	Stateless bool
+	valType   reflect.Type
+	ptrType   reflect.Type
+	PtrValue  reflect.Value
+	PtrToComp interface{}
+	ValOfComp interface{}
+	mock      bool
+}
+
+func (b *builder) RegisterMock(name string, o interface{}) {
+	_, fn, _, _ := runtime.Caller(1)
+	if !strings.Contains(fn, "_test.go") {
+		panic("RegisterMock can only bs used from within test code, not production code")
+	}
+	refValue := reflect.ValueOf(o)
+	elem := refValue.Elem()
+	val := elem.Interface()
+	valType := reflect.TypeOf(val)
+	ptrType := reflect.TypeOf(o)
+
+	c2 := component{Name: name, Stateless: true, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o, ValOfComp: val}
+	b.Registry[name] = c2
+	//mocks[name] = c
+}
+
+func populateInfo(c Component) *typeInfo {
 	tptr := reflect.TypeOf(c.Instance)
 	v := reflect.ValueOf(c.Instance)
 	v1 := v.Elem().Interface()
@@ -107,24 +149,17 @@ func pop(c Component) *typeInfo {
 	info := &typeInfo{Typ: tval, PTyp: tptr, Name: c.Name, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
 	mockInfoMap[tval] = info
-	fmt.Println(info)
-	fmt.Println(tptr)
-	fmt.Println(tval)
 	types := []reflect.Type{tval, tptr}
 	for _, t := range types {
-		fmt.Println(t.NumMethod())
-		fmt.Println(t.Kind())
 		for i := 0; i < t.NumMethod(); i++ {
 			m := t.Method(i)
 			if fnExists(info, m.Name) {
 				continue
 			}
-			fmt.Printf("%+v\n", m)
 			t1 := m.Type
 			fn := &funcInfo{}
 			fn.Name = m.Name
 			info.Funcs = append(info.Funcs, fn)
-			fmt.Println(t1.NumIn())
 			for j := 0; j < t1.NumIn(); j++ {
 				t2 := t1.In(j)
 				if t2.PkgPath() != "" {
@@ -148,10 +183,8 @@ func pop(c Component) *typeInfo {
 				fn.Params = append(fn.Params, &param{Input: false, Typ: t2, Name: t2.Name(), Ptr: ptr})
 			}
 		}
-		info.Fields = fields(info, tptr)
+		info.Fields = populateFields(info, tptr)
 	}
-	fmt.Printf("%+v\n", info)
-	fmt.Println()
 	return info
 
 }
@@ -182,14 +215,7 @@ func gen(t reflect.Type, info *typeInfo) {
 		if f.Typ.Kind() == reflect.Ptr {
 			temp = f.Typ.Elem()
 		}
-		fmt.Println(temp)
 		popEnclosed(temp, &ginfo)
-	}
-	fmt.Println("Fooooooorrrr = ", info.Name)
-	i := 0
-	for _, tt := range ginfo.EnclosedTypes {
-		i = i + 1
-		fmt.Printf("Befor  = %d, %s\n", i, tt.Name)
 	}
 	for _, f := range info.Fields {
 		if "DEPS_" != f.Name {
@@ -198,28 +224,19 @@ func gen(t reflect.Type, info *typeInfo) {
 		deps := findDeps(f)
 		for _, dep := range deps {
 			for t, v := range mockInfoMap {
-				//fmt.Printf("Info = %+v\n", v)
 				if dep == v.Name {
 					ginfo.EnclosedTypes[t] = v
 				}
 			}
 		}
 	}
-	i = 0
-	for _, tt := range ginfo.EnclosedTypes {
-		i = i + 1
-		fmt.Printf("After  = %d, %s\n", i, tt.Name)
-	}
 	var b bytes.Buffer
-	for i, v := range ginfo.EnclosedTypes {
-		fmt.Println(i, " = ", v)
-	}
 	err = tmpl.Execute(&b, ginfo)
 	if err != nil {
 		log.Fatalf("execution: %s", err)
 	}
-	s := b.String()
-	fmt.Println(s)
+	//s := b.String()
+	//fmt.Println(s)
 	err = ioutil.WriteFile(info.Basepath+"/mocks_test.go", b.Bytes(), 0644)
 	fmt.Println(err)
 }
@@ -234,7 +251,6 @@ func findDeps(info *fieldInfo) []string {
 }
 
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
-	fmt.Println(temp)
 	if pi, ok := mockInfoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
 		if shouldAdd(ginfo.EnclosedTypes, pi) {
@@ -302,9 +318,7 @@ func printOutParams(params []*param) string {
 	}
 	b := strings.Builder{}
 	b.WriteString("(")
-	//for i := 0; i < len(params); i++ {
 	for i, p := range params {
-		//p := params[i]
 		if p.Input {
 			continue
 		}
@@ -403,7 +417,7 @@ func printImports(tmap map[reflect.Type]*typeInfo) string {
 	return b1
 }
 
-func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
+func populateFields(info *typeInfo, t reflect.Type) []*fieldInfo {
 	fields := make([]*fieldInfo, 0)
 
 	el := t.Elem()
@@ -413,20 +427,15 @@ func fields(info *typeInfo, t reflect.Type) []*fieldInfo {
 			continue
 		}
 		t2 := f.Type
-		fmt.Println(t2)
-		fmt.Println("pkgpath = " + t2.PkgPath())
 		if t2.PkgPath() != "" {
 			info.Imports = append(info.Imports, t2.PkgPath())
 		}
 		if t2.Kind() == reflect.Ptr {
 			t21 := t2.Elem()
-			fmt.Println(t21.PkgPath())
 			info.Imports = append(info.Imports, t21.PkgPath())
-			fmt.Println()
 		}
 		fi := fieldInfo{Name: f.Name, Typ: f.Type, TName: f.Type.String(), StructField: f}
 		fields = append(fields, &fi)
-		fmt.Printf("%+v\n", f)
 	}
 	info.Fields = fields
 	depFields(info)
@@ -437,7 +446,6 @@ func depFields(info *typeInfo) {
 	for i := 0; i < len(info.Fields); i++ {
 		f := info.Fields[i]
 		info.Deps = append(info.Deps, f.Typ)
-		fmt.Println(f.Typ)
 	}
 }
 

@@ -13,7 +13,8 @@ type Fuse interface {
 	// Register a slice of components
 	Register(entries []Entry) []error
 	// Find is needed only for stateful components. Can also be used for stateless in case dependencies are not defined
-	// at instance level of components
+	// at instance level
+	Wire() []error
 	Find(name string) interface{}
 	// Mock is used ONLY during testing for stateful components
 	RegisterMock(name string, c interface{})
@@ -43,8 +44,8 @@ type component struct {
 type Entry struct {
 	// Component key, required
 	Name string
-	// Stateless of stateful
-	Stateless bool
+	// State of stateful
+	State bool
 	// Instance is pointer to component
 	Instance interface{}
 }
@@ -58,13 +59,27 @@ func (b *builder) init() {
 	b.Registry = make(map[string]component)
 }
 
-// Register components and wire them together
+// Register components
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
 		fmt.Printf("Starting to register %s\n", entries[i].Name)
 		b.register2(entries[i])
 		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
+	/*
+		for _, c := range b.Registry {
+			for i := 0; i < c.valType.NumField(); i++ {
+				sf := c.valType.Field(i)
+				b.wire2(&c, sf)
+			}
+		}
+
+	*/
+	return b.Errors
+}
+
+// Wire the components
+func (b *builder) Wire() []error {
 	for _, c := range b.Registry {
 		for i := 0; i < c.valType.NumField(); i++ {
 			sf := c.valType.Field(i)
@@ -146,7 +161,7 @@ func (b *builder) register2(c Entry) {
 	valType := reflect.TypeOf(val)
 	ptrType := reflect.TypeOf(o)
 
-	c2 := component{Name: c.Name, Stateless: c.Stateless, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
+	c2 := component{Name: c.Name, Stateless: c.State, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
 	b.Registry[c.Name] = c2
 }
 
@@ -172,7 +187,7 @@ func (b *builder) create(oldc component) interface{} {
 // Requirements
 // Non-intrusive, minimal imports, small API
 // Minimal footprint, small overhead
-// Supports Stateless as well as stateful components
+// Supports State as well as stateful components
 // Implements ResourceLocator and Dependency Injection
 // Support struct and interface pointer receivers
 // Multiple, isolated resource graphs, no centralized resource graphs
