@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rvauradkar1/fuse/fuse"
 	"github.com/rvauradkar1/fuse/mock/lvl1"
 	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
 	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
@@ -179,4 +180,11 @@ func Test_findDeps(t *testing.T) {
 	if deps[1] != "comp2" {
 		t.Errorf("comp should have been comp2 but was %s", deps[0])
 	}
+}
+
+func Test_register(t *testing.T) {
+	m := New()
+	entries := make([]fuse.Entry, 0)
+	entries = append(entries, fuse.Entry{Name: "lvl1", Instance: &lvl1.L1{}})
+	m.Register(entries)
 }

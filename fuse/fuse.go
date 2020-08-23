@@ -29,6 +29,10 @@ func New() Fuse {
 	return &b
 }
 
+func (b *builder) init() {
+	b.Registry = make(map[string]component)
+}
+
 type component struct {
 	Name      string
 	Stateless bool
@@ -37,7 +41,6 @@ type component struct {
 	PtrValue  reflect.Value
 	PtrToComp interface{}
 	ValOfComp interface{}
-	mock      bool
 }
 
 // Entry is used by clients to configure components
@@ -55,10 +58,6 @@ type builder struct {
 	Errors   []error
 }
 
-func (b *builder) init() {
-	b.Registry = make(map[string]component)
-}
-
 // Register components
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
@@ -66,15 +65,6 @@ func (b *builder) Register(entries []Entry) []error {
 		b.register2(entries[i])
 		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
-	/*
-		for _, c := range b.Registry {
-			for i := 0; i < c.valType.NumField(); i++ {
-				sf := c.valType.Field(i)
-				b.wire2(&c, sf)
-			}
-		}
-
-	*/
 	return b.Errors
 }
 

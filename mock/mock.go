@@ -10,16 +10,16 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/rvauradkar1/fuse/fuse"
 )
 
 type Mock1 interface {
 	// Register a slice of components
-	Register(entries []Entry) []error
-	Wire() []error
+	Register(entries []fuse.Entry) []error
 	// Find is needed primarily for stateful components.
 	Find(name string) interface{}
-	// Mock is used ONLY during testing for
-	RegisterMock(name string, c interface{})
+	SetBasepath(path string)
 }
 
 type Mock interface {
@@ -30,6 +30,7 @@ type MockGen struct {
 	Comps []Component
 }
 
+/*
 // Entry is used by clients to configure components
 type Entry struct {
 	// Component key, required
@@ -39,6 +40,7 @@ type Entry struct {
 	// Instance is pointer to component
 	Instance interface{}
 }
+*/
 
 type Component struct {
 	// Component key, required
@@ -46,7 +48,7 @@ type Component struct {
 	// Instance is pointer to component
 	Instance interface{}
 	// Stateless of stateful
-	Stateless bool
+	//Stateless bool
 	//Base path to generate mocks
 	Basepath string
 }
@@ -112,6 +114,7 @@ func (m *MockGen) Gen() {
 type builder struct {
 	Registry map[string]component
 	Errors   []error
+	Basepath string
 }
 
 type component struct {
@@ -122,23 +125,55 @@ type component struct {
 	PtrValue  reflect.Value
 	PtrToComp interface{}
 	ValOfComp interface{}
-	mock      bool
+	PkgPath   string
 }
 
-func (b *builder) RegisterMock(name string, o interface{}) {
-	_, fn, _, _ := runtime.Caller(1)
-	if !strings.Contains(fn, "_test.go") {
-		panic("RegisterMock can only bs used from within test code, not production code")
+// New intitalizes the builder for mocks
+func New() Mock1 {
+	b := builder{}
+	b.init()
+	return &b
+}
+
+func (b *builder) init() {
+	b.Registry = make(map[string]component)
+}
+
+func (b *builder) Register(entries []fuse.Entry) []error {
+	for i := 0; i < len(entries); i++ {
+		_, fn, _, _ := runtime.Caller(1)
+		if !strings.Contains(fn, "_test.go") {
+			panic("RegisterMock can only bs used from within test code, not production code")
+		}
+		fmt.Printf("Starting to register %s\n", entries[i].Name)
+		b.register2(entries[i].Name, entries[i].Instance)
+		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
+	return b.Errors
+}
+
+func (b *builder) register2(name string, o interface{}) {
+
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
 	val := elem.Interface()
 	valType := reflect.TypeOf(val)
 	ptrType := reflect.TypeOf(o)
 
-	c2 := component{Name: name, Stateless: true, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o, ValOfComp: val}
+	c2 := component{Name: name, Stateless: true, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o,
+		ValOfComp: val, PkgPath: valType.PkgPath()}
 	b.Registry[name] = c2
-	//mocks[name] = c
+}
+
+// Find is a Resource Locator of components
+func (b *builder) Find(name string) interface{} {
+	c := b.Registry[name]
+	return c.PtrToComp
+}
+
+// Find is a Resource Locator of components
+func (b *builder) SetBasepath(path string) {
+	b.Basepath = path
 }
 
 func populateInfo(c Component) *typeInfo {
