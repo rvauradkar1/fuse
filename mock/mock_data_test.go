@@ -3,10 +3,6 @@ package mock
 import (
 	"fmt"
 	"time"
-
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
-
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
 )
 
 type Isvc1 interface {
@@ -54,9 +50,10 @@ type L1 struct {
 	S1    string
 	time  time.Duration
 	Time2 time.Duration
-	L2    lvl2.L2
-	Il2   lvl2.Il2
-	PL2   *lvl2.L2
+	L2    L2
+	Il2   Il2 `_fuse:"Il2"`
+	PL2   *L2
+	DEPS_ interface{} `_deps:"Il2"`
 }
 
 func (l L1) LM1(i int, f float32) (string, *int) {
@@ -79,10 +76,23 @@ type Il2 interface {
 type L2 struct {
 	s    string
 	time time.Duration
-	Il3  lvl3.Il3
+	Il3  Il3
 }
 
 func (l L2) LM21(i int, f float32) string {
 	s := l.Il3.LM3(1, 1.2)
 	return s + "  return from LM1"
+}
+
+type Il3 interface {
+	LM3(i int, f float32) string
+}
+
+type L3 struct {
+	s    string
+	time time.Duration
+}
+
+func (l L3) LM3(i int, f float32) string {
+	return "return from LM3"
 }

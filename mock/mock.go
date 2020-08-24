@@ -29,6 +29,8 @@ type MockGen struct {
 	Comps []Component
 }
 
+var bpath string
+
 type Component struct {
 	// Component key, required
 	Name string
@@ -105,6 +107,7 @@ type component struct {
 func New(basepath string) Mock {
 	b := builder{}
 	b.init(basepath)
+	bpath = basepath
 	return &b
 }
 
@@ -491,7 +494,11 @@ func printFields(fields []*fieldInfo) string {
 	for _, f := range fields {
 		fmt.Fprintf(&b, "%s %s\n", f.Name, f.TName)
 	}
-	return b.String()
+	s := b.String()
+	if strings.Contains(s, bpath) {
+		s = strings.Replace(s, bpath+".", "", -1)
+	}
+	return s
 }
 
 func fnExists(t *typeInfo, name string) bool {

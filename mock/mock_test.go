@@ -7,15 +7,12 @@ import (
 	"testing"
 
 	"github.com/rvauradkar1/fuse/fuse"
-	"github.com/rvauradkar1/fuse/mock/lvl1"
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2"
-	"github.com/rvauradkar1/fuse/mock/lvl1/lvl2/lvl3"
 )
 
 func Test_pop(t *testing.T) {
 	info := populateInfo(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	fmt.Println("+v", info)
-	if len(info.Fields) != 7 {
+	if len(info.Fields) != 8 {
 		t.Errorf("length of populateFields should have been %d, but was %d", 7, len(info.Fields))
 	}
 	fmt.Println(len(info.Imports))
@@ -30,7 +27,7 @@ func Test_pop(t *testing.T) {
 	for i := 0; i < len(info.Deps); i++ {
 		fmt.Println(info.Deps[i])
 	}
-	if len(info.Deps) != 14 {
+	if len(info.Deps) != 16 {
 		t.Errorf("length of deps should have been %d, but was %d", 14, len(info.Deps))
 	}
 	if info.Typ != reflect.TypeOf(L1{}) {
@@ -108,8 +105,8 @@ func Test_printImports(t *testing.T) {
 	types[reflect.TypeOf(L1{})] = info
 	s := printImports(types)
 	fmt.Println(s)
-	if !strings.Contains(s, "\"github.com/rvauradkar1/fuse/mock/lvl1/lvl2\"") {
-		t.Errorf("should have contained '%s'", "\"github.com/rvauradkar1/fuse/mock/lvl1/lvl2\"")
+	if !strings.Contains(s, "time") {
+		t.Errorf("should have contained '%s'", "time")
 	}
 }
 
@@ -139,6 +136,7 @@ func Test_printFields(t *testing.T) {
 	}
 }
 
+/*
 func Test_gen(t *testing.T) {
 	m := MockGen{}
 	comps := make([]Component, 0)
@@ -152,6 +150,8 @@ func Test_gen(t *testing.T) {
 	fmt.Println(t1)
 
 }
+
+*/
 
 func Test_findDeps(t *testing.T) {
 	fi := fieldInfo{StructField: reflect.StructField{Tag: "_deps"}}
@@ -182,12 +182,44 @@ func Test_findDeps(t *testing.T) {
 	}
 }
 
+/*
 func Test_register(t *testing.T) {
 	m := New("mock")
 	entries := make([]fuse.Entry, 0)
 	entries = append(entries, fuse.Entry{Name: "lvl1", Instance: &lvl1.L1{}})
 	entries = append(entries, fuse.Entry{Name: "lvl2", Instance: &lvl2.L2{}})
 	entries = append(entries, fuse.Entry{Name: "lvl3", Instance: &lvl3.L3{}})
+	errors := m.Register(entries)
+	fmt.Println("errors = ", errors)
+	m.Generate2()
+}
+*/
+
+/*
+func Test_gen(t *testing.T) {
+	m := MockGen{}
+	comps := make([]Component, 0)
+	//fuse.Entry{Name: "OrdCtrl", Instance: &ctrl.OrderController{}})
+
+	comps = append(comps, Component{Instance: &L1{}, Basepath: "./"})
+	comps = append(comps, Component{Instance: &L2{}, Basepath: "./"})
+	comps = append(comps, Component{Instance: &L3{}, Basepath: "./"})
+	m.Comps = comps
+	m.Generate()
+
+	t1 := typeInfo{}
+	fmt.Println(t1)
+
+}
+
+*/
+
+func Test_register(t *testing.T) {
+	m := New("mock")
+	entries := make([]fuse.Entry, 0)
+	entries = append(entries, fuse.Entry{Name: "OrdCtrl", Instance: &L1{}})
+	entries = append(entries, fuse.Entry{Name: "CartSvc", Instance: &L2{}})
+	entries = append(entries, fuse.Entry{Name: "AuthSvc", Instance: &L3{}})
 	errors := m.Register(entries)
 	fmt.Println("errors = ", errors)
 	m.Generate2()
