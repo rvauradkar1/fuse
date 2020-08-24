@@ -146,7 +146,7 @@ func Test_gen(t *testing.T) {
 	comps = append(comps, Component{Instance: &lvl2.L2{}, Basepath: "./lvl1/lvl2"})
 	comps = append(comps, Component{Instance: &lvl3.L3{}, Basepath: "./lvl1/lvl2/lvl3"})
 	m.Comps = comps
-	m.Gen()
+	m.Generate()
 
 	t1 := typeInfo{}
 	fmt.Println(t1)
@@ -183,8 +183,12 @@ func Test_findDeps(t *testing.T) {
 }
 
 func Test_register(t *testing.T) {
-	m := New()
+	m := New("mock")
 	entries := make([]fuse.Entry, 0)
 	entries = append(entries, fuse.Entry{Name: "lvl1", Instance: &lvl1.L1{}})
-	m.Register(entries)
+	entries = append(entries, fuse.Entry{Name: "lvl2", Instance: &lvl2.L2{}})
+	entries = append(entries, fuse.Entry{Name: "lvl3", Instance: &lvl3.L3{}})
+	errors := m.Register(entries)
+	fmt.Println("errors = ", errors)
+	m.Generate2()
 }

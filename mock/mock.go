@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,33 +15,19 @@ import (
 	"github.com/rvauradkar1/fuse/fuse"
 )
 
-type Mock1 interface {
+type Mock interface {
 	// Register a slice of components
 	Register(entries []fuse.Entry) []error
 	// Find is needed primarily for stateful components.
 	Find(name string) interface{}
-	SetBasepath(path string)
-}
-
-type Mock interface {
-	Gen(m MockGen)
+	// SetBasepath sets the project root path at which mocks are generated
+	SetRootpath(path string)
+	Generate2()
 }
 
 type MockGen struct {
 	Comps []Component
 }
-
-/*
-// Entry is used by clients to configure components
-type Entry struct {
-	// Component key, required
-	Name string
-	// Stateless of stateful
-	Stateless bool
-	// Instance is pointer to component
-	Instance interface{}
-}
-*/
 
 type Component struct {
 	// Component key, required
@@ -97,22 +84,8 @@ type funcInfo struct {
 
 var funcMap template.FuncMap = make(map[string]interface{}, 0)
 
-func (m *MockGen) Gen() {
-	mockInfoMap = make(map[reflect.Type]*typeInfo)
-	for _, c := range m.Comps {
-		populateInfo(c)
-	}
-	for t, info := range mockInfoMap {
-		//if strings.Contains(t.String(), "Contro") {
-		gen(t, info)
-		//	break
-		//}
-
-	}
-}
-
 type builder struct {
-	Registry map[string]component
+	Registry map[string]Component
 	Errors   []error
 	Basepath string
 }
@@ -129,14 +102,15 @@ type component struct {
 }
 
 // New intitalizes the builder for mocks
-func New() Mock1 {
+func New(basepath string) Mock {
 	b := builder{}
-	b.init()
+	b.init(basepath)
 	return &b
 }
 
-func (b *builder) init() {
-	b.Registry = make(map[string]component)
+func (b *builder) init(basepath string) {
+	b.Registry = make(map[string]Component)
+	b.Basepath = basepath
 }
 
 func (b *builder) Register(entries []fuse.Entry) []error {
@@ -146,36 +120,64 @@ func (b *builder) Register(entries []fuse.Entry) []error {
 			panic("RegisterMock can only bs used from within test code, not production code")
 		}
 		fmt.Printf("Starting to register %s\n", entries[i].Name)
-		b.register2(entries[i].Name, entries[i].Instance)
+		b.register3(entries[i])
 		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
 	return b.Errors
 }
 
-func (b *builder) register2(name string, o interface{}) {
+func (b *builder) register3(entry fuse.Entry) {
+	t := reflect.TypeOf(entry.Instance)
+	v := t.Elem()
 
-	refValue := reflect.ValueOf(o)
-	elem := refValue.Elem()
-	val := elem.Interface()
-	valType := reflect.TypeOf(val)
-	ptrType := reflect.TypeOf(o)
-
-	c2 := component{Name: name, Stateless: true, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o,
-		ValOfComp: val, PkgPath: valType.PkgPath()}
-	b.Registry[name] = c2
+	spl := strings.Split(v.PkgPath(), b.Basepath)
+	if len(spl) == 0 {
+		e := fmt.Sprintf("entry [%s] has no basepath set", entry.Name)
+		b.Errors = append(b.Errors, errors.New(e))
+		return
+	}
+	p := "." + spl[len(spl)-1]
+	c := Component{Name: entry.Name, Instance: entry.Instance, Basepath: p}
+	b.Registry[entry.Name] = c
 }
 
 // Find is a Resource Locator of components
 func (b *builder) Find(name string) interface{} {
 	c := b.Registry[name]
-	return c.PtrToComp
+	return c.Instance
 }
 
-// Find is a Resource Locator of components
-func (b *builder) SetBasepath(path string) {
+func (b *builder) SetRootpath(path string) {
 	b.Basepath = path
 }
 
+func (m *MockGen) Generate() {
+	mockInfoMap = make(map[reflect.Type]*typeInfo)
+	for _, c := range m.Comps {
+		populateInfo(c)
+	}
+	for t, info := range mockInfoMap {
+		//if strings.Contains(t.String(), "Contro") {
+		gen(t, info)
+		//	break
+		//}
+
+	}
+}
+
+func (b *builder) Generate2() {
+	mockInfoMap = make(map[reflect.Type]*typeInfo)
+	for _, c := range b.Registry {
+		populateInfo(c)
+	}
+	for t, info := range mockInfoMap {
+		//if strings.Contains(t.String(), "Contro") {
+		gen(t, info)
+		//	break
+		//}
+
+	}
+}
 func populateInfo(c Component) *typeInfo {
 	tptr := reflect.TypeOf(c.Instance)
 	v := reflect.ValueOf(c.Instance)

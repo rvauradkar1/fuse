@@ -16,7 +16,7 @@ func main() {
 	comps = append(comps, Component{Instance: &lvl2.L2{}, Basepath: "./lvl1/lvl2"})
 	comps = append(comps, Component{Instance: &lvl3.L3{}, Basepath: "./lvl1/lvl2/lvl3"})
 	m.Comps = comps
-	m.Gen()
+	m.Generate()
 
 	sl := make([]string, 0)
 	s := "test"
