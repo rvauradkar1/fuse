@@ -342,10 +342,12 @@ type Mock{{.StructName}} struct{
 {{$str:=.StructName}}
 {{range .Funcs}}
 {{$rec:= . | receiver}}
+
+
 type {{.Name}} func({{.Params | printInParams}}) {{.Params | printOutParams}}
-var Mock{{.Name}} {{.Name}}
+var Mock{{$str}}_{{.Name}} {{.Name}}
 func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | printOutParams}} {
-	return Mock{{.Name}}({{.Params | printInNames}})
+	return Mock{{$str}}_{{.Name}}({{.Params | printInNames}})
 }
 {{end}}
 // End of mock for {{$str}} and its methods
@@ -495,7 +497,9 @@ func printFields(fields []*fieldInfo) string {
 		fmt.Fprintf(&b, "%s %s\n", f.Name, f.TName)
 	}
 	s := b.String()
-	if strings.Contains(s, bpath) {
+	a := bpath
+	fmt.Println(a)
+	if "" != bpath && strings.Contains(s, bpath) {
 		s = strings.Replace(s, bpath+".", "", -1)
 	}
 	return s
