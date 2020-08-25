@@ -1,17 +1,17 @@
-#### This repo contains 2 packages:
+## This repo contains 2 packages:
 1. fuse 
 2. mock
 
 
-#### Goals:
-1. Non-intrusive - References to the package fuse should be in just startup code.
-2. Minimal imports - Only one import during configuration.
+## Goals:
+1. Minimal imports - Only one import (fuse) during configuration.
+2. Non-intrusive - References to the package fuse should be in just startup code.
 3. Small API - just enough to get work done.
 4. Minimal footprint/low overhead - no complicated setup code required.
 
 For a full usage example of these 2 packages please refer to repo [https://github.com/rvauradkar1/testfuse]()
 
-## fuse
+## Package fuse
 
 Features:
 
@@ -31,7 +31,7 @@ Features:
 2. Components dependencies can either be through interfaces or pointers to `struct`s.
 
 
-## mock
+## Package mock
 mock library generates code for all the dependencies that a component has.
 
 Features:
@@ -40,7 +40,7 @@ Features:
 ```
 type CartSvc struct {
 	CacheSvc cache.IService `_fuse:"CacheSvc"`
-	DBSvc      db.IService      `_fuse:"DBSvc"`
-	DEPS_      interface{}       `_deps:"OrderSvc"`
+	DBSvc    db.IService    `_fuse:"DBSvc"`
+	DEPS_    interface{}    `_deps:"OrderSvc"`
 }
 ```
