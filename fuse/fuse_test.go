@@ -182,7 +182,8 @@ func Test_create(t *testing.T) {
 	cs = append(cs, e3)
 
 	fuse := New()
-	fuse.Register(cs)
+	errors := fuse.Register(cs)
+	fmt.Println(errors)
 	c := fuse.Find("svc1")
 	c1, ok := c.(*Svc1)
 	if !ok {

@@ -32,15 +32,6 @@ Features:
 
 
 ## Package mock
-mock library generates code for all the dependencies that a component has.
+mock library generates mock code for all the dependencies of a component.
 
-Features:
-
-
-```
-type CartSvc struct {
-	CacheSvc cache.IService `_fuse:"CacheSvc"`
-	DBSvc    db.IService    `_fuse:"DBSvc"`
-	DEPS_    interface{}    `_deps:"OrderSvc"`
-}
-```
+For a full usage example of these 2 packages please refer to repo [https://github.com/rvauradkar1/testfuse]()

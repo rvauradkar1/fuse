@@ -12,9 +12,10 @@ import (
 type Fuse interface {
 	// Register a slice of components
 	Register(entries []Entry) []error
+	// Wire injects dependencies into components.
+	Wire() []error
 	// Find is needed only for stateful components. Can also be used for stateless in case dependencies are not defined
 	// at instance level
-	Wire() []error
 	Find(name string) interface{}
 	// Mock is used ONLY during testing for stateful components
 	RegisterMock(name string, c interface{})
@@ -62,7 +63,9 @@ type builder struct {
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
 		fmt.Printf("Starting to register %s\n", entries[i].Name)
-		b.register2(entries[i])
+		if error := b.register2(entries[i]); error != nil {
+			b.Errors = append(b.Errors, error)
+		}
 		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
 	return b.Errors
@@ -143,7 +146,7 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 	f.Set(of)
 }
 
-func (b *builder) register2(c Entry) {
+func (b *builder) register2(c Entry) error {
 	var o interface{} = c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
@@ -153,6 +156,8 @@ func (b *builder) register2(c Entry) {
 
 	c2 := component{Name: c.Name, Stateless: c.State, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: c.Instance, ValOfComp: val}
 	b.Registry[c.Name] = c2
+
+	return nil
 }
 
 func (b *builder) create(oldc component) interface{} {

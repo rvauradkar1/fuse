@@ -6,11 +6,10 @@ import (
 
 )
 
-// Begin of mock for L2 and its methods
-type MockL2 struct{
+// Begin of mock for L3 and its methods
+type MockL3 struct{
 	s string
 time time.Duration
-Il3 Il3
 
 }
 
@@ -18,11 +17,11 @@ Il3 Il3
 
 
 
-type LM21 func(i1 int,f2 float32) (string)
-var L2_LM21 LM21
-func (v MockL2) LM21(i1 int,f2 float32) (string) {
-	return L2_LM21( i1, f2)
+type LM3 func(i1 int,f2 float32) (string)
+var MockL3_LM3 LM3
+func (v MockL3) LM3(i1 int,f2 float32) (string) {
+	return MockL3_LM3( i1, f2)
 }
 
-// End of mock for L2 and its methods
+// End of mock for L3 and its methods
 

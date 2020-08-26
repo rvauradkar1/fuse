@@ -20,13 +20,7 @@ type Mock interface {
 	Register(entries []fuse.Entry) []error
 	// Find is needed primarily for stateful components.
 	Find(name string) interface{}
-	// SetBasepath sets the project root path at which mocks are generated
-	SetRootpath(path string)
 	Generate2()
-}
-
-type MockGen struct {
-	Comps []Component
 }
 
 var bpath string
@@ -92,17 +86,6 @@ type builder struct {
 	Basepath string
 }
 
-type component struct {
-	Name      string
-	Stateless bool
-	valType   reflect.Type
-	ptrType   reflect.Type
-	PtrValue  reflect.Value
-	PtrToComp interface{}
-	ValOfComp interface{}
-	PkgPath   string
-}
-
 // New intitalizes the builder for mocks
 func New(basepath string) Mock {
 	b := builder{}
@@ -132,7 +115,6 @@ func (b *builder) Register(entries []fuse.Entry) []error {
 func (b *builder) register3(entry fuse.Entry) {
 	t := reflect.TypeOf(entry.Instance)
 	v := t.Elem()
-
 	spl := strings.Split(v.PkgPath(), b.Basepath)
 	if len(spl) == 0 {
 		e := fmt.Sprintf("entry [%s] has no basepath set", entry.Name)
@@ -150,24 +132,6 @@ func (b *builder) Find(name string) interface{} {
 	return c.Instance
 }
 
-func (b *builder) SetRootpath(path string) {
-	b.Basepath = path
-}
-
-func (m *MockGen) Generate() {
-	mockInfoMap = make(map[reflect.Type]*typeInfo)
-	for _, c := range m.Comps {
-		populateInfo(c)
-	}
-	for t, info := range mockInfoMap {
-		//if strings.Contains(t.String(), "Contro") {
-		gen(t, info)
-		//	break
-		//}
-
-	}
-}
-
 func (b *builder) Generate2() {
 	mockInfoMap = make(map[reflect.Type]*typeInfo)
 	for _, c := range b.Registry {
@@ -181,6 +145,8 @@ func (b *builder) Generate2() {
 
 	}
 }
+
+// populateInfo populates type information
 func populateInfo(c Component) *typeInfo {
 	tptr := reflect.TypeOf(c.Instance)
 	v := reflect.ValueOf(c.Instance)
@@ -189,17 +155,21 @@ func populateInfo(c Component) *typeInfo {
 	info := &typeInfo{Typ: tval, PTyp: tptr, Name: c.Name, StructName: tval.Name(), PkgPath: tval.PkgPath(), PkgString: tval.String(), Pkg: pkg(tval.String()),
 		Basepath: c.Basepath}
 	mockInfoMap[tval] = info
+	// navigate value reciever as well as pointer receiver, to get ALL methods
 	types := []reflect.Type{tval, tptr}
+	// populate
 	for _, t := range types {
 		for i := 0; i < t.NumMethod(); i++ {
 			m := t.Method(i)
 			if fnExists(info, m.Name) {
+				// ensures that duplicate functions do not get recorded
 				continue
 			}
 			t1 := m.Type
 			fn := &funcInfo{}
 			fn.Name = m.Name
 			info.Funcs = append(info.Funcs, fn)
+			// populate all input paramters
 			for j := 0; j < t1.NumIn(); j++ {
 				t2 := t1.In(j)
 				if t2.PkgPath() != "" {
@@ -211,6 +181,7 @@ func populateInfo(c Component) *typeInfo {
 				}
 				fn.Params = append(fn.Params, &param{Input: true, Typ: t2, Name: t2.Name(), Ptr: ptr})
 			}
+			// populate all output paramters
 			for j := 0; j < t1.NumOut(); j++ {
 				t2 := t1.Out(j)
 				if t2.PkgPath() != "" {
@@ -245,7 +216,6 @@ func gen(t reflect.Type, info *typeInfo) {
 
 	ginfo := genInfo{EnclosingType: info}
 	ginfo.EnclosedTypes = make(map[reflect.Type]*typeInfo, 0)
-	// Added thissssssssssssssssss
 	ginfo.EnclosedTypes[t] = info
 	for _, f := range info.Fields {
 		if _, ok := f.StructField.Tag.Lookup("_fuse"); !ok {
@@ -281,6 +251,7 @@ func gen(t reflect.Type, info *typeInfo) {
 	fmt.Println(err)
 }
 
+// findDeps finds stateless dependencies
 func findDeps(info *fieldInfo) []string {
 	deps := make([]string, 0)
 	if tag, ok := info.StructField.Tag.Lookup("_deps"); ok {
@@ -290,6 +261,7 @@ func findDeps(info *fieldInfo) []string {
 	return deps
 }
 
+// popEnclosed populates properties of compoenents, eoither structs or interfaces
 func popEnclosed(temp reflect.Type, ginfo *genInfo) {
 	if pi, ok := mockInfoMap[temp]; ok {
 		fmt.Println("containds ", temp, "  ", pi.Typ)
@@ -354,6 +326,7 @@ func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | p
 {{end}}
 `
 
+// printOutParams prints method output parameters
 func printOutParams(params []*param) string {
 	if len(params) == 0 {
 		return ""
@@ -373,6 +346,7 @@ func printOutParams(params []*param) string {
 	return b.String()
 }
 
+// printInParams prints method input parameters
 func printInParams(params []*param) string {
 	if len(params) == 0 {
 		return ""
@@ -406,6 +380,7 @@ func printInParams(params []*param) string {
 	return s
 }
 
+// printInNames prints names for input parametes
 func printInNames(params []*param) string {
 	if len(params) == 0 {
 		return ""
@@ -428,6 +403,7 @@ func printInNames(params []*param) string {
 	return s
 }
 
+// reciever determines if reciever is value or pointer
 func receiver(fn *funcInfo) string {
 	if fn == nil {
 		return "error"
@@ -442,6 +418,7 @@ func receiver(fn *funcInfo) string {
 	return "v "
 }
 
+// printImports prints out all the required imports for a generated mock
 func printImports(tmap map[reflect.Type]*typeInfo) string {
 	b := strings.Builder{}
 	for _, info := range tmap {
@@ -459,6 +436,7 @@ func printImports(tmap map[reflect.Type]*typeInfo) string {
 	return b1
 }
 
+// printFields populates all the required fields for a generated mock
 func populateFields(info *typeInfo, t reflect.Type) []*fieldInfo {
 	fields := make([]*fieldInfo, 0)
 
@@ -484,6 +462,7 @@ func populateFields(info *typeInfo, t reflect.Type) []*fieldInfo {
 	return fields
 }
 
+// depFields populates fields of dependent components
 func depFields(info *typeInfo) {
 	for i := 0; i < len(info.Fields); i++ {
 		f := info.Fields[i]
@@ -491,6 +470,7 @@ func depFields(info *typeInfo) {
 	}
 }
 
+// printFields prints all the fields of a generated mock
 func printFields(fields []*fieldInfo) string {
 	var b strings.Builder
 	for _, f := range fields {
