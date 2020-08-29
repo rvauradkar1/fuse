@@ -99,6 +99,20 @@ func Test_printInNames(t *testing.T) {
 	}
 }
 
+func Test_paramSlice(t *testing.T) {
+	info := populateInfo(Component{Instance: &L1{}, Basepath: "./lvl1"})
+	info.Funcs[0].Params[1].InName = "p1"
+	info.Funcs[0].Params[1].Input = true
+	info.Funcs[0].Params[2].InName = "p2"
+	info.Funcs[0].Params[2].Input = true
+	fmt.Println(len(info.Funcs[0].Params))
+	s := paramSlice(info.Funcs[0].Params)
+	fmt.Println(s)
+	if s != "[]interface{}{p1 ,p2 }" {
+		t.Errorf("should have been '%s', but was '%s'", " p1, p2", s)
+	}
+}
+
 func Test_printImports(t *testing.T) {
 	info := populateInfo(Component{Instance: &L1{}, Basepath: "./lvl1"})
 	types := make(map[reflect.Type]*typeInfo)
@@ -191,7 +205,7 @@ func Test_register(t *testing.T) {
 	entries = append(entries, fuse.Entry{Name: "lvl3", Instance: &lvl3.L3{}})
 	errors := m.Register(entries)
 	fmt.Println("errors = ", errors)
-	m.Generate2()
+	m.Generate()
 }
 */
 
@@ -222,5 +236,5 @@ func Test_register(t *testing.T) {
 	entries = append(entries, fuse.Entry{Name: "AuthSvc", Instance: &L3{}})
 	errors := m.Register(entries)
 	fmt.Println("errors = ", errors)
-	m.Generate2()
+	m.Generate()
 }

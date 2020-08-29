@@ -20,9 +20,11 @@ type Mock interface {
 	Register(entries []fuse.Entry) []error
 	// Find is needed primarily for stateful components.
 	Find(name string) interface{}
-	Generate2()
+	// Generates mocks
+	Generate() []error
 }
 
+// bpath is the base path at which all mocks are generated
 var bpath string
 
 type Component struct {
@@ -132,7 +134,7 @@ func (b *builder) Find(name string) interface{} {
 	return c.Instance
 }
 
-func (b *builder) Generate2() {
+func (b *builder) Generate() []error {
 	mockInfoMap = make(map[reflect.Type]*typeInfo)
 	for _, c := range b.Registry {
 		populateInfo(c)
@@ -144,6 +146,7 @@ func (b *builder) Generate2() {
 		//}
 
 	}
+	return nil
 }
 
 // populateInfo populates type information
@@ -204,6 +207,7 @@ func gen(t reflect.Type, info *typeInfo) {
 	funcMap["printOutParams"] = printOutParams
 	funcMap["printInParams"] = printInParams
 	funcMap["printInNames"] = printInNames
+	funcMap["paramSlice"] = paramSlice
 	funcMap["receiver"] = receiver
 	funcMap["printFields"] = printFields
 	funcMap["printImports"] = printImports
@@ -306,6 +310,30 @@ package {{.EnclosingType.Pkg}}
 import (
 {{.EnclosedTypes | printImports}}
 )
+var stats = make(map[string]*FuncCalls, 0)
+
+type FuncCalls struct {
+	Count  int
+	Params [][]interface{}
+}
+func capture(key string, params []interface{}) {
+	val, ok := stats[key]
+	if !ok {
+		val = &FuncCalls{}
+		val.Count = 0
+		val.Params = make([][]interface{}, 0)
+		stats[key] = val
+	}
+	val.Count++
+	val.Params = append(val.Params, params)
+}
+
+func calls(key string) FuncCalls {
+	if val, ok := stats[key]; ok {
+		return *val
+	}
+	return FuncCalls{}
+}
 {{range .EnclosedTypes}}
 // Begin of mock for {{.StructName}} and its methods
 type Mock{{.StructName}} struct{
@@ -319,6 +347,7 @@ type Mock{{.StructName}} struct{
 type {{.Name}} func({{.Params | printInParams}}) {{.Params | printOutParams}}
 var Mock{{$str}}_{{.Name}} {{.Name}}
 func ({{$rec}}Mock{{$str}}) {{.Name}}({{.Params | printInParams}}) {{.Params | printOutParams}} {
+	capture("Mock{{$str}}_{{.Name}}", {{.Params | paramSlice}})
 	return Mock{{$str}}_{{.Name}}({{.Params | printInNames}})
 }
 {{end}}
@@ -400,6 +429,31 @@ func printInNames(params []*param) string {
 		l := len(s) - 1
 		s = s[0:l]
 	}
+	return s
+}
+
+// printInNames prints names for input parametes
+func paramSlice(params []*param) string {
+	if len(params) == 0 {
+		return ""
+	}
+	b := strings.Builder{}
+	b.WriteString("[]interface{}{")
+	for i := 1; i < len(params); i++ {
+		p := params[i]
+		if !p.Input {
+			continue
+		}
+		b.WriteString(p.InName)
+		b.WriteString(" ")
+		b.WriteString(",")
+	}
+	s := b.String()
+	if len(s) > 0 {
+		l := len(s) - 1
+		s = s[0:l]
+	}
+	s = s + "}"
 	return s
 }
 
