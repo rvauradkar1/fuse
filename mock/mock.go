@@ -18,8 +18,6 @@ import (
 type Mock interface {
 	// Register a slice of components
 	Register(entries []fuse.Entry) []error
-	// Find is needed primarily for stateful components.
-	Find(name string) interface{}
 	// Generates mocks
 	Generate() []error
 }
