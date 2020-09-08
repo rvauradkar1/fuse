@@ -16,12 +16,12 @@ For a full usage example of these 2 packages please refer to repo [https://githu
 Features:
 
 **Dependency Injection pattern** - primarily used for stateless components, all components are singletons.
-1. Register components as stateless.
+1. Register components.
 2. Inject stateless component dependencies.
 
 **Resource Locator pattern** - primarily used for stateful components, all components are prototypes.
 
-1. Register components as stateful.
+1. Register components.
 2. A "Finder" function is provided to get a fresh copy of the component.
 3. Inject stateless component dependencies.
 
