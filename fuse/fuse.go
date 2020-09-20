@@ -147,6 +147,9 @@ func (b *builder) wire2(c *component, sf reflect.StructField) {
 }
 
 func (b *builder) register2(c Entry) error {
+	if reflect.ValueOf(c.Instance).Kind() != reflect.Ptr {
+		return errors.New(fmt.Sprintf("component entry [%s] can only be a pointer variable", c.Name))
+	}
 	var o interface{} = c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
