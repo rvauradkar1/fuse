@@ -9,7 +9,7 @@
 3. Small API - just enough to get work done.
 4. Minimal footprint/low overhead - no complicated setup code required.
 
-For a full usage example of these 2 packages please refer to repo [https://github.com/rvauradkar1/testfuse]()
+For a full usage example of these 2 packages please refer to repo <a href="https://github.com/rvauradkar1/testfuse">Guide to usage of library fuse</a>
 
 ## Package fuse
 
