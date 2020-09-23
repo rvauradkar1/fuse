@@ -34,4 +34,4 @@ Features:
 ## Package mock
 mock library generates mock code for all the dependencies of a component.
 
-For a full usage example of these 2 packages please refer to repo [https://github.com/rvauradkar1/testfuse]()
+For a full usage example of these 2 packages please refer to repo <a href="https://github.com/rvauradkar1/testfuse">Guide to usage of library fuse</a>
