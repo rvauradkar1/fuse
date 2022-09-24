@@ -17,13 +17,11 @@ type Fuse interface {
 	// Find is needed only for stateful components. Can also be used for stateless in case dependencies are not defined
 	// at instance level
 	Find(name string) interface{}
-	// Mock is used ONLY during testing for stateful components
+	// RegisterMock is used ONLY during testing for stateful components
 	RegisterMock(name string, c interface{})
 }
 
-var mocks = make(map[string]interface{})
-
-// New intitalizes the DI
+// New initializes the DI
 func New() Fuse {
 	b := builder{}
 	b.init()
@@ -63,8 +61,8 @@ type builder struct {
 func (b *builder) Register(entries []Entry) []error {
 	for i := 0; i < len(entries); i++ {
 		fmt.Printf("Starting to register %s\n", entries[i].Name)
-		if error := b.register2(entries[i]); error != nil {
-			b.Errors = append(b.Errors, error)
+		if err := b.register2(entries[i]); err != nil {
+			b.Errors = append(b.Errors, err)
 		}
 		fmt.Printf("Ending to register %s\n", entries[i].Name)
 	}
@@ -150,7 +148,7 @@ func (b *builder) register2(c Entry) error {
 	if reflect.ValueOf(c.Instance).Kind() != reflect.Ptr {
 		return errors.New(fmt.Sprintf("component entry [%s] can only be a pointer variable", c.Name))
 	}
-	var o interface{} = c.Instance
+	o := c.Instance
 	refValue := reflect.ValueOf(o)
 	elem := refValue.Elem()
 	val := elem.Interface()
@@ -163,8 +161,8 @@ func (b *builder) register2(c Entry) error {
 	return nil
 }
 
-func (b *builder) create(oldc component) interface{} {
-	t := oldc.valType
+func (b *builder) create(oldComp component) interface{} {
+	t := oldComp.valType
 	ins := reflect.New(t)
 	o := ins.Interface()
 	refValue := reflect.ValueOf(o)
@@ -173,13 +171,13 @@ func (b *builder) create(oldc component) interface{} {
 	valType := reflect.TypeOf(val)
 	ptrType := reflect.TypeOf(o)
 
-	newc := component{Name: oldc.Name, Stateless: oldc.Stateless, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o, ValOfComp: val}
+	newComp := component{Name: oldComp.Name, Stateless: oldComp.Stateless, valType: valType, ptrType: ptrType, PtrValue: refValue, PtrToComp: o, ValOfComp: val}
 
-	for i := 0; i < newc.valType.NumField(); i++ {
-		sf := newc.valType.Field(i)
-		b.wire2(&newc, sf)
+	for i := 0; i < newComp.valType.NumField(); i++ {
+		sf := newComp.valType.Field(i)
+		b.wire2(&newComp, sf)
 	}
-	return newc.PtrToComp
+	return newComp.PtrToComp
 }
 
 // Requirements
