@@ -1,5 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/rvauradkar1/fuse)](https://goreportcard.com/report/github.com/rvauradkar1/fuse)
-<a href="https://godoc.org/github.com/rvauradkar1/fuse" rel="nofollow"><img src="https://godoc.org/github.com/allegro/bigcache?status.svg=" alt="GoDoc"/></a>
+# [![Go Report Card](https://goreportcard.com/badge/github.com/rvauradkar1/fuse)](https://goreportcard.com/report/github.com/rvauradkar1/fuse)<a href="https://godoc.org/github.com/rvauradkar1/fuse" rel="nofollow"><img src="https://godoc.org/github.com/allegro/bigcache?status.svg=" alt="GoDoc"/></a>
 ## This repo contains 2 packages:
 1. fuse 
 2. mock
